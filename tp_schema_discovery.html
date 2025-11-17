@@ -623,20 +623,24 @@
                             <details style="margin-top: 4px;">
                               <summary style="cursor: pointer; color: #fbbf24; font-size: 11px;">Show arguments (${field.arguments.length})</summary>
                               <div style="margin-top: 4px; padding-left: 8px; border-left: 2px solid rgba(251, 191, 36, 0.3);">
-                                ${field.arguments.map(arg => {
+                                ${field.arguments.map((arg, argIdx) => {
                                   const inputTypeName = arg.type.replace(/[\[\]!]/g, '');
                                   const hasInputDetails = discoveredSchema.inputTypes && discoveredSchema.inputTypes[inputTypeName];
+                                  const toggleId = `input_${idx}_${field.name}_${argIdx}`;
                                   return `
                                   <div style="margin: 4px 0; font-size: 11px;">
-                                    <span style="color: #fbbf24;">${arg.name}</span>
-                                    <span style="color: #9ca3af;">: ${arg.type}</span>
-                                    ${arg.required ? '<span style="color: #ef4444; font-size: 9px;"> REQUIRED</span>' : ''}
-                                    ${hasInputDetails ? '<span style="color: #a855f7; font-size: 9px; cursor: pointer;" onclick="event.stopPropagation(); this.nextElementSibling.style.display = this.nextElementSibling.style.display === \'none\' ? \'block\' : \'none\'"> 🔍 fields</span>' : ''}
-                                    ${arg.description ? `<br><span style="color: #6b7280; font-size: 10px;">${arg.description}</span>` : ''}
+                                    <div>
+                                      <span style="color: #fbbf24;">${arg.name}</span>
+                                      <span style="color: #9ca3af;">: ${arg.type}</span>
+                                      ${arg.required ? '<span style="color: #ef4444; font-size: 9px;"> REQUIRED</span>' : ''}
+                                      ${hasInputDetails ? `<span style="color: #a855f7; font-size: 9px; cursor: pointer; margin-left: 4px;" onclick="event.stopPropagation(); var el = document.getElementById('${toggleId}'); el.style.display = el.style.display === 'none' ? 'block' : 'none';"> 🔍 fields</span>` : ''}
+                                    </div>
+                                    ${arg.description ? `<div style="color: #6b7280; font-size: 10px; margin-top: 2px;">${arg.description}</div>` : ''}
                                     ${hasInputDetails ? `
-                                      <div style="display: none; margin-top: 4px; padding: 4px; background: rgba(168, 85, 247, 0.1); border-radius: 3px;">
+                                      <div id="${toggleId}" style="display: none; margin-top: 6px; padding: 6px; background: rgba(168, 85, 247, 0.1); border-radius: 3px; border-left: 2px solid #a855f7;">
+                                        <div style="color: #a855f7; font-size: 10px; font-weight: 600; margin-bottom: 4px;">${inputTypeName} fields:</div>
                                         ${discoveredSchema.inputTypes[inputTypeName].map(f => `
-                                          <div style="font-size: 10px; margin: 2px 0;">
+                                          <div style="font-size: 10px; margin: 3px 0; padding-left: 8px;">
                                             <span style="color: #a855f7;">${f.name}</span>
                                             <span style="color: #9ca3af;">: ${f.type}</span>
                                             ${f.required ? '<span style="color: #ef4444; font-size: 8px;"> REQ</span>' : ''}
