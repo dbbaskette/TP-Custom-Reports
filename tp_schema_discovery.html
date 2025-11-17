@@ -449,6 +449,18 @@
             fields {
               name
               description
+              args {
+                name
+                description
+                type {
+                  name
+                  kind
+                  ofType {
+                    name
+                    kind
+                  }
+                }
+              }
               type {
                 name
                 kind
@@ -471,7 +483,13 @@
         return data.__type.fields.map(field => ({
           name: field.name,
           description: field.description,
-          type: getTypeInfo(field.type)
+          type: getTypeInfo(field.type),
+          arguments: field.args ? field.args.map(arg => ({
+            name: arg.name,
+            description: arg.description,
+            type: getTypeInfo(arg.type),
+            required: arg.type.kind === 'NON_NULL'
+          })) : []
         }));
       } catch (error) {
         console.error(`Error fetching fields for ${typeName}:`, error);
@@ -530,12 +548,30 @@
                 ${op.returnFields && op.returnFields.length > 0 ? `
                   <div style="margin-bottom: 12px;">
                     <h5 style="color: #4ade80; font-size: 13px; margin: 0 0 8px 0;">Available Return Fields (${op.returnFields.length}):</h5>
-                    <div style="background: rgba(74, 222, 128, 0.05); padding: 8px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                    <div style="background: rgba(74, 222, 128, 0.05); padding: 8px; border-radius: 4px; max-height: 300px; overflow-y: auto;">
                       ${op.returnFields.map(field => `
-                        <div style="margin-bottom: 4px;">
-                          <span class="field-tag property">${field.name}</span>
-                          <span style="color: #9ca3af; font-size: 11px;">: ${field.type}</span>
-                          ${field.description ? `<br><span style="color: #6b7280; font-size: 11px; margin-left: 4px;">${field.description}</span>` : ''}
+                        <div style="margin-bottom: 8px; padding: 6px; background: rgba(0, 0, 0, 0.2); border-radius: 4px;">
+                          <div>
+                            <span class="field-tag property">${field.name}</span>
+                            ${field.arguments && field.arguments.length > 0 ? `<span style="color: #fbbf24; font-size: 10px;">(${field.arguments.length} args)</span>` : ''}
+                            <span style="color: #9ca3af; font-size: 11px;">: ${field.type}</span>
+                          </div>
+                          ${field.description ? `<div style="color: #6b7280; font-size: 11px; margin: 4px 0;">${field.description}</div>` : ''}
+                          ${field.arguments && field.arguments.length > 0 ? `
+                            <details style="margin-top: 4px;">
+                              <summary style="cursor: pointer; color: #fbbf24; font-size: 11px;">Show arguments (${field.arguments.length})</summary>
+                              <div style="margin-top: 4px; padding-left: 8px; border-left: 2px solid rgba(251, 191, 36, 0.3);">
+                                ${field.arguments.map(arg => `
+                                  <div style="margin: 4px 0; font-size: 11px;">
+                                    <span style="color: #fbbf24;">${arg.name}</span>
+                                    <span style="color: #9ca3af;">: ${arg.type}</span>
+                                    ${arg.required ? '<span style="color: #ef4444; font-size: 9px;"> REQUIRED</span>' : ''}
+                                    ${arg.description ? `<br><span style="color: #6b7280; font-size: 10px;">${arg.description}</span>` : ''}
+                                  </div>
+                                `).join('')}
+                              </div>
+                            </details>
+                          ` : ''}
                         </div>
                       `).join('')}
                     </div>
@@ -548,9 +584,20 @@
   ${op.name}${op.arguments.length > 0 ? `(
     ${op.arguments.slice(0, 3).map(arg => `${arg.name}: ${arg.type.includes('String') ? '"value"' : arg.type.includes('Int') ? '100' : arg.type.includes('Boolean') ? 'true' : 'null'}`).join('\n    ')}${op.arguments.length > 3 ? '\n    # ... more arguments' : ''}
   )` : ''} {
-    ${op.returnFields && op.returnFields.length > 0 ? op.returnFields.slice(0, 5).map(f => f.name).join('\n    ') : '# No fields discovered'}${op.returnFields && op.returnFields.length > 5 ? '\n    # ... ' + (op.returnFields.length - 5) + ' more fields' : ''}
+    ${op.returnFields && op.returnFields.length > 0 ? op.returnFields.slice(0, 5).map(f => {
+      if (f.arguments && f.arguments.length > 0) {
+        const exampleArgs = f.arguments.slice(0, 2).map(arg =>
+          `${arg.name}: ${arg.type.includes('String') ? '"value"' : arg.type.includes('Int') ? '10' : arg.type.includes('Boolean') ? 'true' : 'null'}`
+        ).join(', ');
+        return `${f.name}(${exampleArgs}${f.arguments.length > 2 ? ', ...' : ''})`;
+      }
+      return f.name;
+    }).join('\n    ') : '# No fields discovered'}${op.returnFields && op.returnFields.length > 5 ? '\n    # ... ' + (op.returnFields.length - 5) + ' more fields' : ''}
   }
 }</pre>
+                  <p style="color: #6b7280; font-size: 10px; margin: 8px 0 0 0;">
+                    💡 Click "Show arguments" on fields above to see what parameters each field accepts
+                  </p>
                 </div>
               </div>
             </details>
