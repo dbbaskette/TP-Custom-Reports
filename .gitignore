@@ -1,0 +1,32 @@
+# Schema JSON files (downloaded from TP)
+*.json
+tanzu-platform-schema*.json
+tp-schema*.json
+
+# Generated HTML reports (downloaded)
+*report*.html
+!tp_report_builder.html
+!tp_schema_discovery.html
+
+# Archive directory
+archive/
+
+# Environment variables
+.env
+.env.local
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+*.log

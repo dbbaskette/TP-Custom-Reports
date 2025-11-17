@@ -1,0 +1,2902 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>TP Custom Report Builder</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #e0e0e0;
+    }
+
+    .header {
+      background: #0f171c;
+      color: white;
+      padding: 20px 40px;
+      border-bottom: 2px solid #00d9ff;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .header p {
+      margin: 8px 0 0 0;
+      color: #9ca3af;
+      font-size: 14px;
+    }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .card h2 {
+      color: #00d9ff;
+      margin: 0 0 20px 0;
+      font-size: 20px;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(0, 217, 255, 0.3);
+      padding-bottom: 12px;
+    }
+
+    .info {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      line-height: 1.6;
+    }
+
+    .success {
+      background: rgba(74, 222, 128, 0.2);
+      border: 1px solid rgba(74, 222, 128, 0.4);
+      color: #4ade80;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+
+    .error {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+    }
+
+    input[type="file"], input[type="text"], select {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #00d9ff 0%, #b084ff 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-right: 12px;
+      transition: transform 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .entity-selector {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+
+    .entity-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .entity-card:hover {
+      background: rgba(0, 217, 255, 0.05);
+      border-color: #00d9ff;
+    }
+
+    .entity-card.selected {
+      background: rgba(0, 217, 255, 0.1);
+      border-color: #00d9ff;
+      border-width: 2px;
+    }
+
+    .entity-card h3 {
+      margin: 0 0 8px 0;
+      color: #00d9ff;
+      font-size: 16px;
+    }
+
+    .entity-card .count {
+      color: #9ca3af;
+      font-size: 13px;
+    }
+
+    .relationship-builder {
+      margin-top: 24px;
+      padding: 20px;
+      background: rgba(176, 132, 255, 0.1);
+      border: 1px solid rgba(176, 132, 255, 0.3);
+      border-radius: 8px;
+    }
+
+    .relationship-chain {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-top: 16px;
+    }
+
+    .relationship-entity {
+      background: rgba(0, 217, 255, 0.2);
+      border: 1px solid #00d9ff;
+      padding: 12px 20px;
+      border-radius: 6px;
+      font-weight: 600;
+      position: relative;
+    }
+
+    .relationship-arrow {
+      color: #b084ff;
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .relationship-field {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 4px;
+    }
+
+    .relationship-canvas {
+      position: relative;
+      margin-top: 20px;
+      border: 1px dashed rgba(0, 217, 255, 0.4);
+      border-radius: 12px;
+      min-height: 260px;
+      background: rgba(0, 0, 0, 0.3);
+      overflow: hidden;
+    }
+
+    .relationship-svg {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+    }
+
+    .relationship-node {
+      position: absolute;
+      width: 200px;
+      background: rgba(0, 0, 0, 0.6);
+      border: 2px solid rgba(0, 217, 255, 0.5);
+      border-radius: 10px;
+      padding: 16px;
+      cursor: grab;
+      transition: box-shadow 0.2s, transform 0.2s;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .relationship-node.dragging {
+      cursor: grabbing;
+      transform: scale(1.02);
+      box-shadow: 0 20px 35px rgba(0, 0, 0, 0.5);
+    }
+
+    .relationship-node .node-title {
+      color: #00d9ff;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .relationship-node .node-fields {
+      font-size: 12px;
+      color: #9ca3af;
+    }
+
+    .relationship-link {
+      stroke: rgba(176, 132, 255, 0.7);
+      stroke-width: 2;
+      fill: none;
+      marker-end: url(#arrowHead);
+    }
+
+    .field-selector {
+      margin-top: 20px;
+    }
+
+    .field-category {
+      margin-bottom: 24px;
+    }
+
+    .field-category h3 {
+      color: #b084ff;
+      font-size: 16px;
+      margin: 0 0 12px 0;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: 12px;
+    }
+
+    .field-item {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .field-item:hover {
+      background: rgba(0, 217, 255, 0.1);
+      border-color: #00d9ff;
+    }
+
+    .field-item.selected {
+      background: rgba(0, 217, 255, 0.15);
+      border-color: #00d9ff;
+    }
+
+    .field-name {
+      font-weight: 600;
+      color: #00d9ff;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .field-location {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .field-sample {
+      font-size: 11px;
+      color: #fbbf24;
+      margin-top: 4px;
+      font-style: italic;
+    }
+
+    .layout-dropzones {
+      margin-top: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 16px;
+    }
+
+    .layout-dropzones h4 {
+      margin: 0 0 12px 0;
+      color: #9ca3af;
+      font-size: 12px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .layout-zones {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+
+    .layout-zone {
+      min-height: 100px;
+      border: 1px dashed rgba(0, 217, 255, 0.4);
+      border-radius: 8px;
+      padding: 12px;
+      transition: background 0.2s, border 0.2s;
+    }
+
+    .layout-zone.drag-over {
+      background: rgba(0, 217, 255, 0.08);
+      border-color: #00d9ff;
+    }
+
+    .layout-zone .zone-title {
+      font-size: 12px;
+      color: #b084ff;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+
+    .layout-chip {
+      background: rgba(0, 217, 255, 0.08);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      color: #e0e0e0;
+      padding: 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 4px 4px 0 0;
+      cursor: pointer;
+    }
+
+    .layout-chip .chip-primary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .layout-chip .chip-primary span {
+      color: #9ca3af;
+      font-size: 10px;
+    }
+
+    .chip-actions {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .chip-label-toggle {
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.05);
+      color: #e0e0e0;
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 10px;
+      cursor: pointer;
+    }
+
+    .chip-label-toggle.value-only {
+      border-color: rgba(250, 204, 21, 0.4);
+      color: #facc15;
+    }
+
+    .preview-controls {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 16px 0;
+    }
+
+    .preview-shell-select {
+      width: auto;
+    }
+
+    .visual-preview {
+      margin-top: 16px;
+      border-radius: 14px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 20px;
+    }
+
+    .device-frame {
+      border-radius: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.08);
+      padding: 20px;
+      background: #0f171c;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.45);
+      max-height: 420px;
+      overflow: auto;
+    }
+
+    .device-frame.tablet {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .device-frame.mobile {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .device-frame.terminal {
+      background: #050c17;
+      border: 2px solid #00d9ff;
+      font-family: 'SFMono-Regular', Menlo, monospace;
+      color: #00d9ff;
+    }
+
+    .query-inspector {
+      margin-top: 20px;
+      background: rgba(18, 28, 38, 0.8);
+      border: 1px solid rgba(0, 217, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .query-inspector textarea {
+      width: 100%;
+      min-height: 200px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-family: 'SFMono-Regular', Menlo, monospace;
+      padding: 12px;
+      resize: vertical;
+    }
+
+    .query-actions {
+      margin-top: 12px;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .report-preview {
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .report-preview pre {
+      margin: 0;
+      color: #e0e0e0;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .hierarchy-level {
+      margin-left: 24px;
+      border-left: 2px solid rgba(0, 217, 255, 0.3);
+      padding-left: 16px;
+      margin-top: 8px;
+    }
+
+    .timeline {
+      border-left: 2px dashed rgba(0, 217, 255, 0.4);
+      padding-left: 20px;
+      margin-left: 10px;
+    }
+
+    .timeline-step {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .timeline-step::before {
+      content: '';
+      position: absolute;
+      left: -29px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00d9ff;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.7);
+    }
+
+    /* Aggregate Report Styles */
+    .report-type-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
+    }
+
+    .type-option {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 24px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .type-option:hover {
+      background: rgba(0, 217, 255, 0.05);
+      border-color: rgba(0, 217, 255, 0.5);
+    }
+
+    .type-option input[type="radio"] {
+      display: none;
+    }
+
+    .type-option input[type="radio"]:checked + label h3 {
+      color: #00d9ff;
+    }
+
+    .type-option.selected {
+      background: rgba(0, 217, 255, 0.1);
+      border-color: #00d9ff;
+    }
+
+    .type-option h3 {
+      margin: 0 0 8px 0;
+      font-size: 18px;
+      color: #e0e0e0;
+      transition: color 0.2s;
+    }
+
+    .type-option p {
+      margin: 0;
+      color: #9ca3af;
+      font-size: 14px;
+      line-height: 1.4;
+    }
+
+    /* Aggregate Statistics Styles */
+    .aggregate-stat-item {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(0, 217, 255, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      display: grid;
+      grid-template-columns: 1fr 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .aggregate-stat-item label {
+      display: block;
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 4px;
+    }
+
+    .aggregate-stat-item select,
+    .aggregate-stat-item input {
+      width: 100%;
+      font-size: 13px;
+    }
+
+    .stat-remove-btn {
+      background: rgba(255, 59, 48, 0.2);
+      border: 1px solid rgba(255, 59, 48, 0.4);
+      color: #ff3b30;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+      margin-top: 18px;
+    }
+
+    .stat-remove-btn:hover {
+      background: rgba(255, 59, 48, 0.3);
+      border-color: #ff3b30;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔗 TP Custom Report Builder</h1>
+    <p>Build complex hierarchical reports by combining multiple entity types with automatic relationship detection</p>
+  </div>
+
+  <div class="container">
+    <!-- Step 1: Load Schema -->
+    <div class="card">
+      <h2>Step 1: Load Schema</h2>
+      <div class="info">
+        📋 Upload the schema JSON file from the Entity Discovery Report
+      </div>
+      <input type="file" id="schemaFile" accept=".json">
+      <div id="schemaStatus"></div>
+    </div>
+
+    <!-- Controls Toolbar -->
+    <div class="card" id="toolbarCard" style="display: none;">
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; align-items: center;">
+        <button id="undoBtn" class="btn btn-secondary" disabled title="Undo last action (Ctrl/Cmd+Z)">↶ Undo</button>
+        <button id="redoBtn" class="btn btn-secondary" disabled title="Redo last undone action (Ctrl/Cmd+Shift+Z)">↷ Redo</button>
+        <div style="border-left: 2px solid rgba(255,255,255,0.2); height: 32px;"></div>
+        <button id="saveConfigBtn" class="btn btn-secondary" title="Save current configuration">💾 Save Config</button>
+        <button id="loadConfigBtn" class="btn btn-secondary" title="Load configuration">📂 Load Config</button>
+        <input type="file" id="loadConfigFile" accept=".json" style="display: none;">
+      </div>
+    </div>
+
+    <!-- Step 2: Select Entity Types -->
+    <div class="card" id="step2" style="display: none;">
+      <h2>Step 2: Select Entity Types to Query</h2>
+      <div class="info">
+        💡 <strong>Select multiple entity types</strong> to build hierarchical reports.<br>
+        Example: Select "Organization" + "Space" + "Repository" to show Orgs → Spaces → Apps
+      </div>
+      <div class="entity-selector" id="entitySelector"></div>
+    </div>
+
+    <!-- Step 3: Define Relationships -->
+    <div class="card" id="step3" style="display: none;">
+      <h2>Step 3: Define Relationships</h2>
+      <div class="info">
+        🔗 Define how entities are related to each other using common fields
+      </div>
+      <div id="relationshipCanvasSection" style="display: none;">
+        <p style="color: #9ca3af; margin-bottom: 8px;">Drag entities to reorder and visualize how they connect. Links update automatically as you reposition nodes.</p>
+        <div class="relationship-canvas" id="relationshipCanvas">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      <div id="relationshipBuilder"></div>
+    </div>
+
+    <!-- Step 4: Select Fields -->
+    <div class="card" id="step4" style="display: none;">
+      <h2>Step 4: Select Fields to Display</h2>
+      <div class="info">
+        📊 Choose which fields to show for each entity type in your report.<br>
+        🎯 Use the chip toggles to switch between <em>Label + value</em> or <em>Value only</em> output per field.
+      </div>
+      <input type="text" id="fieldSearch" placeholder="🔍 Search fields by name..." style="margin-bottom: 16px;">
+      <div id="fieldSelector"></div>
+    </div>
+
+    <!-- Step 5: Configure & Generate -->
+    <div class="card" id="step5" style="display: none;">
+      <h2>Step 5: Configure Report</h2>
+
+      <label for="reportTitle">Report Title:</label>
+      <input type="text" id="reportTitle" placeholder="e.g., Organizations with Spaces and Applications">
+
+      <label for="reportDescription">Description:</label>
+      <input type="text" id="reportDescription" placeholder="Hierarchical view of TP entities">
+
+      <label for="displayMode">Display Mode:</label>
+      <select id="displayMode">
+        <!-- Options will be populated dynamically based on entity count -->
+      </select>
+      <div id="displayModeHelp" style="font-size: 12px; color: #9ca3af; margin-top: 4px;"></div>
+
+      <div class="preview-controls">
+        <div style="flex: 1; min-width: 200px;">
+          <label for="previewShellSelect">Preview Shell:</label>
+          <select id="previewShellSelect" class="preview-shell-select">
+            <option value="desktop">Desktop</option>
+            <option value="tablet">Tablet</option>
+            <option value="mobile">Mobile</option>
+            <option value="terminal">Terminal</option>
+          </select>
+        </div>
+        <div style="flex: 2; min-width: 240px;">
+          <label style="display: block;">Preview Tips:</label>
+          <div style="font-size: 12px; color: #9ca3af;">
+            Mode and shell updates live to help you design for different surfaces.
+          </div>
+        </div>
+      </div>
+
+      <div class="visual-preview" id="visualPreview" style="display: none;">
+        <h3 style="color: #00d9ff; margin-top: 0;">Live Layout Preview</h3>
+        <div class="device-frame" id="previewFrame"></div>
+      </div>
+
+      <div style="margin-top: 20px;">
+        <button class="btn" id="generateBtn">Generate Report HTML</button>
+        <button class="btn btn-secondary" id="previewBtn">Preview Structure</button>
+      </div>
+
+      <div id="reportPreview"></div>
+
+      <div class="query-inspector" id="queryInspector" style="display: none;">
+        <h3 style="margin-top: 0; color: #00d9ff;">GraphQL Query Inspector</h3>
+        <p style="font-size: 12px; color: #9ca3af; margin-top: 4px;">
+          Review and optionally edit the auto-generated query. Apply overrides to carry changes into the exported report.
+        </p>
+        <textarea id="queryInspectorText"></textarea>
+        <div class="query-actions">
+          <button class="btn" id="applyQueryOverride">Apply Override</button>
+          <button class="btn btn-secondary" id="resetQueryOverride">Reset to Auto</button>
+        </div>
+        <div id="queryInspectorStatus" style="font-size: 12px; color: #9ca3af; margin-top: 8px;"></div>
+      </div>
+    </div>
+
+    <!-- Step 6: Download -->
+    <div class="card" id="step6" style="display: none;">
+      <h2>Step 6: Download Report</h2>
+      <div class="success">
+        ✅ Report generated successfully!
+      </div>
+      <button class="btn" id="downloadBtn">Download Report HTML</button>
+      <button class="btn btn-secondary" id="copyQueryBtn">Copy GraphQL Query</button>
+    </div>
+  </div>
+
+  <script>
+    let schema = null;
+    let selectedEntityTypes = [];
+    let relationships = [];
+    let selectedFields = {}; // { entityType: [fields] }
+    let generatedHTML = '';
+    let relationshipLayout = {};
+    let draggedFieldPayload = null;
+    let nodeDragState = null;
+    let customQueryOverride = '';
+    let cachedOverrideValue = '';
+    let cachedOverrideMap = null;
+    let previewShell = 'desktop';
+
+    // Step 1: Load Schema
+    document.getElementById('schemaFile').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        schema = JSON.parse(text);
+
+        if (!schema.entityTypes || schema.entityTypes.length === 0) {
+          throw new Error('No entity types found in schema');
+        }
+
+        document.getElementById('schemaStatus').innerHTML = `
+          <div class="success">
+            ✅ Schema loaded successfully!<br>
+            Found ${schema.entityTypes.length} entity types
+          </div>
+        `;
+
+        document.getElementById('step2').style.display = 'block';
+        displayEntitySelector();
+      } catch (error) {
+        document.getElementById('schemaStatus').innerHTML = `
+          <div class="error">❌ Error: ${error.message}</div>
+        `;
+      }
+    });
+
+    // Step 2: Display Entity Selector
+    function displayEntitySelector() {
+      const container = document.getElementById('entitySelector');
+
+      const html = schema.entityTypes.map(et => {
+        const isSelected = selectedEntityTypes.includes(et.name);
+        return `
+          <div class="entity-card ${isSelected ? 'selected' : ''}" onclick="toggleEntityType('${et.name}')">
+            <h3>${et.name}</h3>
+            <div class="count">${et.totalCount?.toLocaleString() || '?'} entities</div>
+            <div class="count" style="margin-top: 4px;">${et.description || ''}</div>
+          </div>
+        `;
+      }).join('');
+
+      container.innerHTML = html;
+    }
+
+    function toggleEntityType(entityTypeName) {
+      const index = selectedEntityTypes.indexOf(entityTypeName);
+
+      if (index > -1) {
+        selectedEntityTypes.splice(index, 1);
+        delete selectedFields[entityTypeName];
+        delete relationshipLayout[entityTypeName];
+      } else {
+        selectedEntityTypes.push(entityTypeName);
+        selectedFields[entityTypeName] = [];
+        relationshipLayout[entityTypeName] = relationshipLayout[entityTypeName] || {
+          x: 80 + (selectedEntityTypes.length * 220),
+          y: 80 + (selectedEntityTypes.length % 2) * 120
+        };
+      }
+
+      displayEntitySelector();
+      cachedOverrideValue = '';
+      cachedOverrideMap = null;
+
+      if (selectedEntityTypes.length > 0) {
+        document.getElementById('step3').style.display = 'block';
+        document.getElementById('step4').style.display = 'block';
+        buildRelationships();
+        displayFieldSelector();
+      } else {
+        document.getElementById('step3').style.display = 'none';
+        document.getElementById('step4').style.display = 'none';
+        document.getElementById('step5').style.display = 'none';
+      }
+    }
+
+    // Step 3: Build Relationships
+    function buildRelationships() {
+      const container = document.getElementById('relationshipBuilder');
+      const canvasSection = document.getElementById('relationshipCanvasSection');
+      if (canvasSection) {
+        canvasSection.style.display = selectedEntityTypes.length ? 'block' : 'none';
+      }
+
+      if (selectedEntityTypes.length < 2) {
+        container.innerHTML = `
+          <div class="info">
+            Select at least 2 entity types to define relationships
+          </div>
+        `;
+        relationships = [];
+        renderRelationshipCanvas();
+        return;
+      }
+
+      // Auto-detect possible relationships based on common fields
+      const detectedRelationships = autoDetectRelationships();
+
+      let html = '<h3 style="color: #b084ff; margin-bottom: 16px;">Detected Relationships</h3>';
+
+      if (detectedRelationships.length === 0) {
+        html += `<div class="info">No common fields detected. You can still query these entities separately.</div>`;
+      } else {
+        html += '<div class="relationship-chain">';
+
+        detectedRelationships.forEach((rel, idx) => {
+          if (idx > 0) {
+            html += '<div class="relationship-arrow">→</div>';
+          }
+          html += `
+            <div class="relationship-entity">
+              ${rel.from}
+              <div class="relationship-field">${rel.fromField} = ${rel.to}.${rel.toField}</div>
+            </div>
+          `;
+        });
+
+        html += `
+          <div class="relationship-entity">
+            ${detectedRelationships[detectedRelationships.length - 1].to}
+          </div>
+        `;
+        html += '</div>';
+      }
+
+      html += `
+        <div style="margin-top: 20px;">
+          <h3 style="color: #b084ff; margin-bottom: 12px;">Manual Relationship Definition</h3>
+          <div style="background: rgba(0, 0, 0, 0.3); padding: 16px; border-radius: 8px;">
+            ${selectedEntityTypes.map((et, idx) => {
+              if (idx === selectedEntityTypes.length - 1) return '';
+              const fromEntity = schema.entityTypes.find(e => e.name === et);
+              const toEntity = schema.entityTypes.find(e => e.name === selectedEntityTypes[idx + 1]);
+              const fromFields = getAllFields(fromEntity);
+              const toFields = getAllFields(toEntity);
+
+              return `
+                <div style="margin-bottom: 20px; padding: 16px; background: rgba(255,255,255,0.03); border-radius: 8px;">
+                  <div style="color: #00d9ff; font-weight: 600; margin-bottom: 12px;">
+                    Link: ${et} → ${selectedEntityTypes[idx + 1]}
+                  </div>
+
+                  <div style="display: grid; grid-template-columns: 1fr auto 1fr; gap: 12px; align-items: center;">
+                    <div>
+                      <label style="font-size: 12px; color: #9ca3af;">Field in ${et}:</label>
+                      <select id="rel_from_${idx}" style="margin-top: 4px;" onchange="updateRelationship(${idx})">
+                        <option value="">-- Select Field --</option>
+                        ${fromFields.map(field => {
+                          const locationLabel = field.location.startsWith('namespace:')
+                            ? field.location.split(':')[1]
+                            : field.location;
+                          return `<option value="${field.name}" data-location="${field.location}">${field.name}${locationLabel && locationLabel !== 'basic' ? ` (${locationLabel})` : ''}</option>`;
+                        }).join('')}
+                      </select>
+                    </div>
+
+                    <div style="color: #b084ff; font-size: 20px; padding-top: 20px;">=</div>
+
+                    <div>
+                      <label style="font-size: 12px; color: #9ca3af;">Field in ${selectedEntityTypes[idx + 1]}:</label>
+                      <select id="rel_to_${idx}" style="margin-top: 4px;" onchange="updateRelationship(${idx})">
+                        <option value="">-- Select Field --</option>
+                        ${toFields.map(field => {
+                          const locationLabel = field.location.startsWith('namespace:')
+                            ? field.location.split(':')[1]
+                            : field.location;
+                          return `<option value="${field.name}" data-location="${field.location}">${field.name}${locationLabel && locationLabel !== 'basic' ? ` (${locationLabel})` : ''}</option>`;
+                        }).join('')}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style="margin-top: 8px; font-size: 11px; color: #9ca3af;">
+                    💡 Example: Space.guid = App.spaceGuid
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+
+      container.innerHTML = html;
+      relationships = detectedRelationships;
+      ensureRelationshipLocations();
+      renderRelationshipCanvas();
+      updateVisualPreview();
+      updateQueryInspector();
+    }
+
+    function renderRelationshipCanvas() {
+      const canvas = document.getElementById('relationshipCanvas');
+      if (!canvas) return;
+
+      if (!selectedEntityTypes.length) {
+        canvas.innerHTML = `<div style="padding: 40px; text-align: center; color: #9ca3af;">Select entities to visualize relationships.</div>`;
+        return;
+      }
+
+      selectedEntityTypes.forEach((entity, idx) => {
+        if (!relationshipLayout[entity]) {
+          relationshipLayout[entity] = {
+            x: 40 + (idx * 220),
+            y: 60 + ((idx % 2) * 120)
+          };
+        }
+      });
+
+      const nodesHtml = selectedEntityTypes.map(entity => {
+        const pos = relationshipLayout[entity];
+        const fieldCount = (selectedFields[entity] || []).length;
+        return `
+          <div class="relationship-node" data-entity="${entity}" style="left: ${pos.x}px; top: ${pos.y}px;">
+            <div class="node-title">${entity}</div>
+            <div class="node-fields">${fieldCount} field${fieldCount === 1 ? '' : 's'} selected</div>
+          </div>
+        `;
+      }).join('');
+
+      canvas.innerHTML = `
+        <svg class="relationship-svg" id="relationshipSvg"></svg>
+        ${nodesHtml}
+      `;
+
+      initRelationshipNodeDrag();
+      updateRelationshipLines();
+    }
+
+    function initRelationshipNodeDrag() {
+      const nodes = document.querySelectorAll('.relationship-node');
+      nodes.forEach(node => {
+        node.addEventListener('pointerdown', onNodePointerDown);
+      });
+    }
+
+    function onNodePointerDown(event) {
+      const node = event.currentTarget;
+      const canvas = document.getElementById('relationshipCanvas');
+      if (!canvas) return;
+
+      const rect = node.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+
+      nodeDragState = {
+        entity: node.dataset.entity,
+        offsetX: event.clientX - rect.left,
+        offsetY: event.clientY - rect.top,
+        width: rect.width,
+        height: rect.height,
+        pointerId: event.pointerId
+      };
+
+      node.classList.add('dragging');
+      node.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    }
+
+    function onNodePointerMove(event) {
+      if (!nodeDragState) return;
+      const canvas = document.getElementById('relationshipCanvas');
+      if (!canvas) return;
+
+      const node = canvas.querySelector(`.relationship-node[data-entity="${nodeDragState.entity}"]`);
+      if (!node) return;
+
+      const canvasRect = canvas.getBoundingClientRect();
+      let newX = event.clientX - canvasRect.left - nodeDragState.offsetX;
+      let newY = event.clientY - canvasRect.top - nodeDragState.offsetY;
+
+      newX = Math.max(8, Math.min(newX, canvas.clientWidth - nodeDragState.width - 8));
+      newY = Math.max(8, Math.min(newY, canvas.clientHeight - nodeDragState.height - 8));
+
+      node.style.left = `${newX}px`;
+      node.style.top = `${newY}px`;
+
+      relationshipLayout[nodeDragState.entity] = { x: newX, y: newY };
+      updateRelationshipLines();
+    }
+
+    function onNodePointerUp(event) {
+      if (!nodeDragState) return;
+
+      const canvas = document.getElementById('relationshipCanvas');
+      const node = canvas?.querySelector(`.relationship-node[data-entity="${nodeDragState.entity}"]`);
+      node?.classList.remove('dragging');
+      node?.releasePointerCapture?.(nodeDragState.pointerId);
+
+      reorderEntitiesByLayout();
+      nodeDragState = null;
+      buildRelationships();
+    }
+
+    function reorderEntitiesByLayout() {
+      selectedEntityTypes.sort((a, b) => {
+        const posA = relationshipLayout[a]?.x ?? 0;
+        const posB = relationshipLayout[b]?.x ?? 0;
+        return posA - posB;
+      });
+    }
+
+    function updateRelationshipLines() {
+      const svg = document.getElementById('relationshipSvg');
+      const canvas = document.getElementById('relationshipCanvas');
+      if (!svg || !canvas) return;
+
+      const canvasRect = canvas.getBoundingClientRect();
+      const nodeRects = {};
+      canvas.querySelectorAll('.relationship-node').forEach(node => {
+        nodeRects[node.dataset.entity] = node.getBoundingClientRect();
+      });
+
+      const lines = relationships.map(rel => {
+        const fromRect = nodeRects[rel.from];
+        const toRect = nodeRects[rel.to];
+        if (!fromRect || !toRect) return '';
+
+        const startX = (fromRect.right - canvasRect.left);
+        const startY = (fromRect.top - canvasRect.top) + (fromRect.height / 2);
+        const endX = (toRect.left - canvasRect.left);
+        const endY = (toRect.top - canvasRect.top) + (toRect.height / 2);
+        const midX = (startX + endX) / 2;
+
+        return `<path class="relationship-link" d="M${startX},${startY} C ${midX},${startY} ${midX},${endY} ${endX},${endY}"></path>`;
+      }).join('');
+
+      svg.setAttribute('width', canvas.clientWidth);
+      svg.setAttribute('height', canvas.clientHeight);
+      svg.innerHTML = `
+        <defs>
+          <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+            <path d="M0,0 L0,6 L9,3 z" fill="#b084ff"></path>
+          </marker>
+        </defs>
+        ${lines}
+      `;
+    }
+
+    function autoDetectRelationships() {
+      const detected = [];
+
+      for (let i = 0; i < selectedEntityTypes.length - 1; i++) {
+        const fromType = selectedEntityTypes[i];
+        const toType = selectedEntityTypes[i + 1];
+        const commonFields = getCommonFields(fromType, toType);
+
+        if (commonFields.length > 0) {
+          const preferredFieldMeta = commonFields.find(f =>
+            f.name.toLowerCase().includes('id') ||
+            f.name.toLowerCase().includes('guid') ||
+            f.name.toLowerCase().includes('name')
+          ) || commonFields[0];
+
+          detected.push({
+            from: fromType,
+            to: toType,
+            fromField: preferredFieldMeta.name,
+            toField: preferredFieldMeta.name,
+            fromLocation: preferredFieldMeta.fromLocation || resolveFieldLocation(fromType, preferredFieldMeta.name),
+            toLocation: preferredFieldMeta.toLocation || resolveFieldLocation(toType, preferredFieldMeta.name)
+          });
+        }
+      }
+
+      return detected;
+    }
+
+    function getAllFields(entity) {
+      if (!entity?.fields) return [];
+
+      const fields = [];
+
+      (entity.fields.basic || []).forEach(fieldName => {
+        fields.push({ name: fieldName, location: 'basic' });
+      });
+
+      (entity.fields.tags || []).forEach(fieldName => {
+        fields.push({ name: fieldName, location: 'tag' });
+      });
+
+      (entity.fields.properties || []).forEach(fieldName => {
+        fields.push({ name: fieldName, location: 'property' });
+      });
+
+      if (entity.fields.namespaces) {
+        Object.entries(entity.fields.namespaces).forEach(([nsName, props]) => {
+          props.forEach(propName => {
+            fields.push({ name: propName, location: `namespace:${nsName}` });
+          });
+        });
+      }
+
+      return fields;
+    }
+
+    function resolveFieldLocation(entityTypeName, fieldName) {
+      const entity = schema?.entityTypes.find(et => et.name === entityTypeName);
+      if (!entity?.fields) return 'basic';
+
+      if (entity.fields.basic?.includes(fieldName)) return 'basic';
+      if (entity.fields.tags?.includes(fieldName)) return 'tag';
+      if (entity.fields.properties?.includes(fieldName)) return 'property';
+
+      if (entity.fields.namespaces) {
+        for (const [nsName, props] of Object.entries(entity.fields.namespaces)) {
+          if (props.includes(fieldName)) {
+            return `namespace:${nsName}`;
+          }
+        }
+      }
+
+      return 'basic';
+    }
+
+    function getCommonFields(type1, type2) {
+      const entity1 = schema.entityTypes.find(et => et.name === type1);
+      const entity2 = schema.entityTypes.find(et => et.name === type2);
+
+      if (!entity1?.fields || !entity2?.fields) return [];
+
+      const fields1 = getAllFields(entity1);
+      const fields2 = getAllFields(entity2);
+      const map2 = new Map();
+
+      fields2.forEach(field => {
+        if (!map2.has(field.name)) {
+          map2.set(field.name, field.location);
+        }
+      });
+
+      const common = [];
+      fields1.forEach(field => {
+        if (map2.has(field.name)) {
+          common.push({
+            name: field.name,
+            fromLocation: field.location,
+            toLocation: map2.get(field.name)
+          });
+        }
+      });
+
+      return common;
+    }
+
+    function ensureRelationshipLocations() {
+      relationships = relationships.map(rel => {
+        if (!rel) return rel;
+        return {
+          ...rel,
+          fromLocation: rel.fromLocation || resolveFieldLocation(rel.from, rel.fromField),
+          toLocation: rel.toLocation || resolveFieldLocation(rel.to, rel.toField)
+        };
+      });
+    }
+
+    function updateRelationship(index) {
+      const fromSelect = document.getElementById(`rel_from_${index}`);
+      const toSelect = document.getElementById(`rel_to_${index}`);
+      const fromField = fromSelect?.value;
+      const toField = toSelect?.value;
+      const fromLocationAttr = fromSelect?.selectedOptions?.[0]?.dataset.location;
+      const toLocationAttr = toSelect?.selectedOptions?.[0]?.dataset.location;
+
+      if (fromField && toField) {
+        relationships[index] = {
+          from: selectedEntityTypes[index],
+          to: selectedEntityTypes[index + 1],
+          fromField: fromField,
+          toField: toField,
+          fromLocation: fromLocationAttr || resolveFieldLocation(selectedEntityTypes[index], fromField),
+          toLocation: toLocationAttr || resolveFieldLocation(selectedEntityTypes[index + 1], toField)
+        };
+        console.log('Updated relationship:', relationships[index]);
+      }
+    }
+
+    // Step 4: Display Field Selector + layout zones
+    function displayFieldSelector() {
+      const container = document.getElementById('fieldSelector');
+
+      let html = '';
+
+      selectedEntityTypes.forEach(entityTypeName => {
+        const entity = schema.entityTypes.find(et => et.name === entityTypeName);
+        if (!entity) return;
+
+        html += `
+          <div class="field-category">
+            <h3>${entityTypeName} Fields</h3>
+            <div class="field-grid">
+        `;
+
+        if (entity.fields?.basic) {
+          entity.fields.basic.forEach(fieldName => {
+            const isSelected = selectedFields[entityTypeName]?.some(f =>
+              f.name === fieldName && f.location === 'basic'
+            );
+            const sampleValue = entity.sampleData?.sampleEntities?.[0]?.[fieldName];
+
+            html += `
+              <div class="field-item ${isSelected ? 'selected' : ''}"
+                   data-entity="${entityTypeName}"
+                   data-field="${fieldName}"
+                   data-location="basic"
+                   onclick="toggleField('${entityTypeName}', '${fieldName}', 'basic')">
+                <span class="field-name">${fieldName}</span>
+                <span class="field-location">basic field</span>
+                ${sampleValue ? `<div class="field-sample">e.g., ${sampleValue}</div>` : ''}
+              </div>
+            `;
+          });
+        }
+
+        if (entity.fields?.tags) {
+          entity.fields.tags.forEach(tagKey => {
+            const isSelected = selectedFields[entityTypeName]?.some(f =>
+              f.name === tagKey && f.location === 'tag'
+            );
+            const sampleValue = getSampleTagValue(entity.sampleData?.sampleEntities?.[0], tagKey);
+
+            html += `
+              <div class="field-item ${isSelected ? 'selected' : ''}"
+                   data-entity="${entityTypeName}"
+                   data-field="${tagKey}"
+                   data-location="tag"
+                   onclick="toggleField('${entityTypeName}', '${tagKey}', 'tag')">
+                <span class="field-name">${tagKey}</span>
+                <span class="field-location">tag</span>
+                ${sampleValue ? `<div class="field-sample">e.g., ${sampleValue}</div>` : ''}
+              </div>
+            `;
+          });
+        }
+
+        if (entity.fields?.properties) {
+          entity.fields.properties.forEach(propName => {
+            const isSelected = selectedFields[entityTypeName]?.some(f =>
+              f.name === propName && f.location === 'property'
+            );
+            const sampleValue = getSamplePropertyValue(entity.sampleData?.sampleEntities?.[0], propName);
+
+            html += `
+              <div class="field-item ${isSelected ? 'selected' : ''}"
+                   data-entity="${entityTypeName}"
+                   data-field="${propName}"
+                   data-location="property"
+                   onclick="toggleField('${entityTypeName}', '${propName}', 'property')">
+                <span class="field-name">${propName}</span>
+                <span class="field-location">property</span>
+                ${sampleValue ? `<div class="field-sample">e.g., ${sampleValue}</div>` : ''}
+              </div>
+            `;
+          });
+        }
+
+        if (entity.fields?.namespaces) {
+          Object.entries(entity.fields.namespaces).forEach(([nsName, props]) => {
+            props.forEach(propName => {
+              const isSelected = selectedFields[entityTypeName]?.some(f =>
+                f.name === propName && f.location === `namespace:${nsName}`
+              );
+              const sampleValue = getSampleNamespaceValue(entity.sampleData?.sampleEntities?.[0], nsName, propName);
+
+              html += `
+                <div class="field-item ${isSelected ? 'selected' : ''}"
+                     data-entity="${entityTypeName}"
+                     data-field="${propName}"
+                     data-location="namespace:${nsName}"
+                     onclick="toggleField('${entityTypeName}', '${propName}', 'namespace:${nsName}')">
+                  <span class="field-name">${propName}</span>
+                  <span class="field-location">${nsName}</span>
+                  ${sampleValue ? `<div class="field-sample">e.g., ${sampleValue}</div>` : ''}
+                </div>
+              `;
+            });
+          });
+        }
+
+        html += `
+            </div>
+            ${renderLayoutZones(entityTypeName)}
+          </div>
+        `;
+      });
+
+      container.innerHTML = html;
+      initFieldDragAndDrop();
+      initChipLabelToggles();
+
+      const hasSelectedFields = Object.values(selectedFields).some(fields => fields.length > 0);
+      if (hasSelectedFields) {
+        document.getElementById('step5').style.display = 'block';
+        populateDisplayModeOptions();
+        document.getElementById('queryInspector').style.display = 'block';
+        document.getElementById('visualPreview').style.display = 'block';
+        updateVisualPreview();
+        updateQueryInspector();
+      } else {
+        document.getElementById('step5').style.display = 'none';
+        document.getElementById('visualPreview').style.display = 'none';
+        document.getElementById('queryInspector').style.display = 'none';
+      }
+    }
+
+    function renderLayoutZones(entityType) {
+      const zoneOrder = [
+        { id: 'header', label: 'Header' },
+        { id: 'summary', label: 'Summary Row' },
+        { id: 'detail', label: 'Per-Entity Detail' }
+      ];
+
+      return `
+        <div class="layout-dropzones">
+          <h4>Layout Zones</h4>
+          <div class="layout-zones">
+            ${zoneOrder.map(zone => {
+              const fields = getFieldsForZone(entityType, zone.id);
+              const chips = fields.length
+                ? fields.map(field => {
+                    const labelClass = field.showLabel === false ? 'chip-label-toggle value-only' : 'chip-label-toggle';
+                    const labelText = field.showLabel === false ? 'Value only' : 'Label + value';
+                    return `
+                      <div class="layout-chip"
+                           data-chip-entity="${entityType}"
+                           data-chip-field="${field.name}"
+                           data-chip-location="${field.location}"
+                           onclick="cycleChipZone('${entityType}', '${field.name}', '${field.location}')">
+                        <div class="chip-primary">
+                          <strong>${field.name}</strong>
+                          <span>${field.location}</span>
+                        </div>
+                        <div class="chip-actions">
+                          <button type="button"
+                                  class="${labelClass}"
+                                  data-entity="${entityType}"
+                                  data-field="${field.name}"
+                                  data-location="${field.location}">
+                            ${labelText}
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')
+                : '<div style="font-size: 11px; color: #4b5563;">Drop fields here</div>';
+
+              return `
+                <div class="layout-zone"
+                     data-entity="${entityType}"
+                     data-zone="${zone.id}">
+                  <div class="zone-title">${zone.label}</div>
+                  <div class="zone-body">${chips}</div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function initFieldDragAndDrop() {
+      document.querySelectorAll('.field-item').forEach(item => {
+        item.setAttribute('draggable', 'true');
+        item.addEventListener('dragstart', handleFieldDragStart);
+        item.addEventListener('dragend', handleFieldDragEnd);
+      });
+
+      document.querySelectorAll('.layout-zone').forEach(zone => {
+        zone.addEventListener('dragover', handleLayoutDragOver);
+        zone.addEventListener('dragleave', handleLayoutDragLeave);
+        zone.addEventListener('drop', handleLayoutDrop);
+      });
+    }
+
+    function initChipLabelToggles() {
+      document.querySelectorAll('.chip-label-toggle').forEach(btn => {
+        btn.addEventListener('click', event => {
+          event.stopPropagation();
+          toggleFieldLabel(
+            btn.dataset.entity,
+            btn.dataset.field,
+            btn.dataset.location
+          );
+        });
+      });
+    }
+
+    function handleFieldDragStart(event) {
+      const target = event.currentTarget;
+      draggedFieldPayload = {
+        entityType: target.dataset.entity,
+        fieldName: target.dataset.field,
+        location: target.dataset.location
+      };
+      if (event.dataTransfer) {
+        event.dataTransfer.setData('text/plain', JSON.stringify(draggedFieldPayload));
+        event.dataTransfer.effectAllowed = 'move';
+      }
+    }
+
+    function handleFieldDragEnd() {
+      draggedFieldPayload = null;
+    }
+
+    function handleLayoutDragOver(event) {
+      event.preventDefault();
+      event.currentTarget.classList.add('drag-over');
+    }
+
+    function handleLayoutDragLeave(event) {
+      event.currentTarget.classList.remove('drag-over');
+    }
+
+    function handleLayoutDrop(event) {
+      event.preventDefault();
+      event.currentTarget.classList.remove('drag-over');
+      const entityType = event.currentTarget.dataset.entity;
+      const zone = event.currentTarget.dataset.zone;
+      let payload = draggedFieldPayload;
+
+      if (!payload && event.dataTransfer?.getData('text/plain')) {
+        try {
+          payload = JSON.parse(event.dataTransfer.getData('text/plain'));
+        } catch (_) {
+          payload = null;
+        }
+      }
+
+      if (!payload || payload.entityType !== entityType) return;
+      assignFieldToZone(entityType, payload.fieldName, payload.location, zone);
+    }
+
+    function assignFieldToZone(entityType, fieldName, location, zone) {
+      if (!selectedFields[entityType]) {
+        selectedFields[entityType] = [];
+      }
+
+      let field = selectedFields[entityType].find(f =>
+        f.name === fieldName && f.location === location
+      );
+
+      if (!field) {
+        field = { name: fieldName, location, zone: zone || 'detail', showLabel: true };
+        selectedFields[entityType].push(field);
+      } else {
+        field.zone = zone;
+      }
+
+      draggedFieldPayload = null;
+      displayFieldSelector();
+    }
+
+    function getFieldsForZone(entityType, zone) {
+      return (selectedFields[entityType] || []).filter(f => (f.zone || 'detail') === zone);
+    }
+
+    function cycleChipZone(entityType, fieldName, location) {
+      const zoneOrder = ['header', 'summary', 'detail'];
+      const field = (selectedFields[entityType] || []).find(f =>
+        f.name === fieldName && f.location === location
+      );
+      if (!field) return;
+
+      const currentIndex = zoneOrder.indexOf(field.zone || 'detail');
+      field.zone = zoneOrder[(currentIndex + 1) % zoneOrder.length];
+      displayFieldSelector();
+    }
+
+    function toggleFieldLabel(entityType, fieldName, location) {
+      const fields = selectedFields[entityType];
+      if (!fields) return;
+      const field = fields.find(f => f.name === fieldName && f.location === location);
+      if (!field) return;
+      field.showLabel = field.showLabel === false ? true : false;
+      displayFieldSelector();
+    }
+
+    function getFieldsNeededForEntity(entityType) {
+      const selected = selectedFields[entityType] ? [...selectedFields[entityType]] : [];
+      const required = [...selected];
+
+      relationships.forEach(rel => {
+        if (rel?.from === entityType && rel.fromField) {
+          const entry = {
+            name: rel.fromField,
+            location: rel.fromLocation || resolveFieldLocation(entityType, rel.fromField),
+            showLabel: true
+          };
+          if (!required.some(f => f.name === entry.name && f.location === entry.location)) {
+            required.push(entry);
+          }
+        }
+        if (rel?.to === entityType && rel.toField) {
+          const entry = {
+            name: rel.toField,
+            location: rel.toLocation || resolveFieldLocation(entityType, rel.toField),
+            showLabel: true
+          };
+          if (!required.some(f => f.name === entry.name && f.location === entry.location)) {
+            required.push(entry);
+          }
+        }
+      });
+
+      return required;
+    }
+
+    function updateVisualPreview() {
+      const previewWrapper = document.getElementById('visualPreview');
+      const previewFrame = document.getElementById('previewFrame');
+      if (!previewWrapper || !previewFrame) return;
+
+      const hasFields = Object.values(selectedFields).some(fields => fields.length > 0);
+      previewWrapper.style.display = hasFields ? 'block' : 'none';
+      if (!hasFields) {
+        previewFrame.innerHTML = '';
+        return;
+      }
+
+      previewFrame.className = `device-frame ${previewShell}`;
+      previewFrame.innerHTML = renderPreviewTemplate();
+    }
+
+    function renderPreviewTemplate() {
+      if (!selectedEntityTypes.length) {
+        return '<p style="color: #9ca3af;">Select entity types to preview the layout.</p>';
+      }
+
+      const displayMode = document.getElementById('displayMode')?.value || 'hierarchical';
+
+      if (selectedEntityTypes.length === 1) {
+        return renderSingleEntityPreview(selectedEntityTypes[0], displayMode);
+      }
+
+      const tree = buildMockHierarchyTree();
+      return renderMultiEntityPreview(tree, displayMode);
+    }
+
+    function renderSingleEntityPreview(entityType, displayMode) {
+      const fields = selectedFields[entityType] || [];
+      if (!fields.length) {
+        return `<p style="color: #9ca3af;">Select at least one field for ${entityType}.</p>`;
+      }
+
+      const previewRows = [buildMockEntityRow(entityType, fields), buildMockEntityRow(entityType, fields, 1)];
+
+      if (displayMode === 'grouped') {
+        return `
+          <div class="group-header">Grouped by ${fields[0].name}</div>
+          ${previewRows.map((row, idx) => `
+            <div class="entity-item">
+              <strong>${row[fields[0].name] || `Group ${idx + 1}`}</strong>
+              <div style="font-size: 12px; color: #9ca3af;">
+                ${fields.slice(1).map(f => `${f.name}: ${row[f.name] || '-'}`).join(' • ')}
+              </div>
+            </div>
+          `).join('')}
+        `;
+      }
+
+      let summary = '';
+      if (displayMode === 'summary-table') {
+        summary = `
+          <div class="summary-card" style="margin-bottom: 16px;">
+            <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;">Summary</div>
+            <div style="font-size: 28px; font-weight: 600;">${previewRows.length} ${entityType}</div>
+          </div>
+        `;
+      }
+
+      const headers = fields.map(f => `<th>${f.name}</th>`).join('');
+      const rows = previewRows.map(row => `
+        <tr>${fields.map(f => `<td>${row[f.name] || '-'}</td>`).join('')}</tr>
+      `).join('');
+
+      return `
+        ${summary}
+        <table>
+          <thead><tr>${headers}</tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
+    }
+
+    function renderMultiEntityPreview(tree, displayMode) {
+      if (displayMode === 'table') {
+        const rows = flattenHierarchy(tree);
+        return `
+          <table>
+            <thead>
+              <tr>
+                <th>Entity</th>
+                <th>Path</th>
+                <th>Highlights</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.map(row => `
+                <tr>
+                  <td style="padding-left: ${row.depth * 16}px;">${row.entityType}</td>
+                  <td>${row.path.join(' → ')}</td>
+                  <td>${row.summary}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      if (displayMode === 'cards') {
+        return `
+          ${renderCardPreview(tree)}
+        `;
+      }
+
+      if (displayMode === 'timeline') {
+        const steps = flattenHierarchy(tree);
+        return `
+          <div class="timeline">
+            ${steps.map(step => `
+              <div class="timeline-step">
+                <div style="font-weight: 600; color: #00d9ff;">${step.entityType}</div>
+                <div style="font-size: 12px; color: #9ca3af;">${step.path.join(' › ')}</div>
+                <div style="font-size: 12px;">${step.summary}</div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+      }
+
+      return renderHierarchyPreview(tree);
+    }
+
+    function renderHierarchyPreview(node, depth = 0) {
+      const fields = selectedFields[node.entityType] || [];
+      const sampleRow = buildMockEntityRow(node.entityType, fields);
+      const details = renderFieldPreviewList(node.entityType, sampleRow);
+      return `
+        <div class="hierarchy-level" style="margin-left: ${depth === 0 ? 0 : 20}px;">
+          <div class="entity-item">
+            <strong style="color: #00d9ff; display: block; margin-bottom: 6px;">${node.entityType}</strong>
+            ${details}
+          </div>
+          ${node.children?.map(child => renderHierarchyPreview(child, depth + 1)).join('') || ''}
+        </div>
+      `;
+    }
+
+    function renderCardPreview(node) {
+      const fields = selectedFields[node.entityType] || [];
+      const sampleRow = buildMockEntityRow(node.entityType, fields);
+      const details = renderFieldPreviewList(node.entityType, sampleRow);
+      return `
+        <div class="preview-card">
+          <h4>${node.entityType}</h4>
+          <div style="font-size: 12px;">
+            ${details}
+          </div>
+          ${node.children?.length ? `
+            <div style="margin-top: 12px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 12px;">
+              ${node.children.map(child => renderCardPreview(child)).join('')}
+            </div>` : ''}
+        </div>
+      `;
+    }
+
+    function buildMockHierarchyTree() {
+      const buildLevel = (depth, prefix = 'Sample') => {
+        const entityType = selectedEntityTypes[depth];
+        const label = `${prefix} ${entityType}`;
+        const node = {
+          entityType,
+          label,
+          children: []
+        };
+
+        if (depth < selectedEntityTypes.length - 1) {
+          node.children.push(buildLevel(depth + 1, 'Child'));
+          node.children.push(buildLevel(depth + 1, 'Alt'));
+        }
+
+        return node;
+      };
+
+      return buildLevel(0);
+    }
+
+    function summarizeFields(entityType) {
+      const fields = selectedFields[entityType] || [];
+      return fields.slice(0, 3).map(f => f.name).join(' • ') || 'No fields selected';
+    }
+
+    function flattenHierarchy(node, path = [], depth = 0, rows = []) {
+      const currentPath = [...path, node.entityType];
+      rows.push({
+        entityType: node.entityType,
+        path: currentPath,
+        depth,
+        summary: summarizeFields(node.entityType)
+      });
+
+      node.children?.forEach(child => flattenHierarchy(child, currentPath, depth + 1, rows));
+      return rows;
+    }
+
+    function buildMockEntityRow(entityType, fields, offset = 0) {
+      const row = {};
+      fields.forEach((field, idx) => {
+        row[field.name] = `${field.name} ${idx + 1 + offset}`;
+      });
+      return row;
+    }
+
+    function renderFieldPreviewList(entityType, sampleRow) {
+      const fields = selectedFields[entityType] || [];
+      if (!fields.length) {
+        return '<div style="font-size: 11px; color: #4b5563;">No fields selected</div>';
+      }
+      return fields.map(field => {
+        const value = sampleRow?.[field.name] || `${field.name} value`;
+        if (field.showLabel === false) {
+          return `<div>${value}</div>`;
+        }
+        return `<div><strong>${field.name}:</strong> ${value}</div>`;
+      }).join('');
+    }
+
+    function updateQueryInspector() {
+      const inspector = document.getElementById('queryInspector');
+      const textarea = document.getElementById('queryInspectorText');
+      const status = document.getElementById('queryInspectorStatus');
+      if (!inspector || !textarea) return;
+
+      const hasFields = Object.values(selectedFields).some(fields => fields.length > 0);
+      inspector.style.display = hasFields ? 'block' : 'none';
+      if (!hasFields) {
+        textarea.value = '';
+        if (status) status.textContent = '';
+        return;
+      }
+
+      const autoQuery = generateGraphQLQueryText();
+      textarea.dataset.autoQuery = autoQuery;
+      textarea.value = customQueryOverride || autoQuery;
+    }
+
+    function generateGraphQLQueryText() {
+      if (!selectedEntityTypes.length) return '';
+
+      if (selectedEntityTypes.length === 1) {
+        const entityType = selectedEntityTypes[0];
+        const selection = buildFieldSelectionSet(entityType);
+        return `query Get${entityType.replace(/\\W/g, '_')}(\\$first: Int!, \\$entityType: [String!]) {
+  entityQuery {
+    queryEntities(first: \\$first, entityType: \\$entityType) {
+      totalCount
+      entities {
+${selection}
+      }
+    }
+  }
+}`;
+      }
+
+      return selectedEntityTypes.map(entityType => {
+        const selection = buildFieldSelectionSet(entityType);
+        return `# ${entityType}
+query Get${entityType.replace(/\\W/g, '_')}(\\$first: Int!, \\$entityType: [String!]) {
+  entityQuery {
+    queryEntities(first: \\$first, entityType: \\$entityType) {
+      totalCount
+      entities {
+${selection}
+      }
+    }
+  }
+}`;
+      }).join('\\n\\n');
+    }
+
+    function buildFieldSelectionSet(entityType) {
+      const fields = getFieldsNeededForEntity(entityType);
+      const lines = [];
+      const basic = fields.filter(f => f.location === 'basic');
+      if (basic.length) {
+        basic.forEach(field => lines.push(`        ${field.name}`));
+      } else {
+        lines.push('        entityId');
+        lines.push('        entityName');
+      }
+
+      if (fields.some(f => f.location === 'tag')) {
+        lines.push('        tags { key value }');
+      }
+
+      if (fields.some(f => f.location === 'property')) {
+        lines.push('        properties { name value }');
+      }
+
+      const namespaces = [...new Set(
+        fields.filter(f => f.location.startsWith('namespace:')).map(f => f.location.split(':')[1])
+      )];
+
+      if (namespaces.length) {
+        lines.push('        namespaces {');
+        lines.push('          name');
+        lines.push('          properties { name value }');
+        lines.push('        }');
+      }
+
+      return lines.join('\\n');
+    }
+
+    function getParsedOverrideMap() {
+      if (!customQueryOverride?.trim()) {
+        cachedOverrideValue = '';
+        cachedOverrideMap = null;
+        return null;
+      }
+
+      if (cachedOverrideValue === customQueryOverride) {
+        return cachedOverrideMap;
+      }
+
+      cachedOverrideValue = customQueryOverride;
+      cachedOverrideMap = parseOverrideString(customQueryOverride);
+      return cachedOverrideMap;
+    }
+
+    function parseOverrideString(text) {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
+
+      if (selectedEntityTypes.length === 1) {
+        return { [selectedEntityTypes[0]]: trimmed };
+      }
+
+      const sections = {};
+      let current = null;
+      let buffer = [];
+      trimmed.split(/\r?\n/).forEach(line => {
+        const header = line.match(/^#\s*(.+)$/);
+        if (header) {
+          if (current && buffer.length) {
+            sections[current] = buffer.join('\n').trim();
+          }
+          current = header[1].trim();
+          buffer = [];
+        } else {
+          buffer.push(line);
+        }
+      });
+
+      if (current && buffer.length) {
+        sections[current] = buffer.join('\n').trim();
+      }
+
+      if (!Object.keys(sections).length) {
+        return { __default: trimmed };
+      }
+
+      return sections;
+    }
+
+    function getQueryOverrideForEntity(entityType) {
+      const map = getParsedOverrideMap();
+      if (!map) return null;
+      return map[entityType] || map.__default || null;
+    }
+
+    function setQueryInspectorStatus(message) {
+      const status = document.getElementById('queryInspectorStatus');
+      if (status) {
+        status.textContent = message || '';
+      }
+    }
+
+    function populateDisplayModeOptions() {
+      const displayModeSelect = document.getElementById('displayMode');
+      const displayModeHelp = document.getElementById('displayModeHelp');
+      const isSingleEntity = selectedEntityTypes.length === 1;
+      const previousValue = displayModeSelect.value;
+
+      if (isSingleEntity) {
+        displayModeSelect.innerHTML = `
+          <option value="table">Simple Table</option>
+          <option value="summary-table">Summary + Table</option>
+          <option value="grouped">Grouped by Field</option>
+        `;
+        displayModeHelp.textContent = '💡 Single entity selected - choose a display template';
+      } else {
+        displayModeSelect.innerHTML = `
+          <option value="hierarchical">Hierarchical Tree</option>
+          <option value="table">Indented List</option>
+          <option value="cards">Stacked Cards</option>
+          <option value="timeline">Journey Timeline</option>
+        `;
+        displayModeHelp.textContent = `💡 ${selectedEntityTypes.length} entities selected - experiment with different layouts`;
+      }
+
+      if ([...displayModeSelect.options].some(opt => opt.value === previousValue)) {
+        displayModeSelect.value = previousValue;
+      }
+
+      updateVisualPreview();
+    }
+
+    function toggleField(entityType, fieldName, location) {
+      if (!selectedFields[entityType]) {
+        selectedFields[entityType] = [];
+      }
+
+      const index = selectedFields[entityType].findIndex(f =>
+        f.name === fieldName && f.location === location
+      );
+
+      if (index > -1) {
+        selectedFields[entityType].splice(index, 1);
+      } else {
+        selectedFields[entityType].push({ name: fieldName, location: location, zone: 'detail', showLabel: true });
+      }
+
+      displayFieldSelector();
+    }
+
+    function getSampleTagValue(entity, tagKey) {
+      if (!entity?.tags) return null;
+      const tag = entity.tags.find(t => t.key === tagKey);
+      return tag?.value;
+    }
+
+    function getSamplePropertyValue(entity, propName) {
+      if (!entity?.properties) return null;
+      const prop = entity.properties.find(p => p.name === propName);
+      return prop?.value;
+    }
+
+    function getSampleNamespaceValue(entity, nsName, propName) {
+      if (!entity?.namespaces) return null;
+      const ns = entity.namespaces.find(n => n.name === nsName);
+      if (!ns?.properties) return null;
+      const prop = ns.properties.find(p => p.name === propName);
+      return prop?.value;
+    }
+
+    document.getElementById('displayMode')?.addEventListener('change', () => {
+      updateVisualPreview();
+    });
+
+    document.getElementById('previewShellSelect')?.addEventListener('change', (event) => {
+      previewShell = event.target.value;
+      updateVisualPreview();
+    });
+
+    document.getElementById('applyQueryOverride')?.addEventListener('click', () => {
+      const textarea = document.getElementById('queryInspectorText');
+      if (!textarea) return;
+      customQueryOverride = textarea.value.trim();
+      cachedOverrideValue = '';
+      cachedOverrideMap = null;
+      setQueryInspectorStatus(customQueryOverride ? 'Custom override applied. It will be used for matching entity fetches.' : 'Override cleared. Using auto-generated query.');
+    });
+
+    document.getElementById('resetQueryOverride')?.addEventListener('click', () => {
+      customQueryOverride = '';
+      cachedOverrideValue = '';
+      cachedOverrideMap = null;
+      updateQueryInspector();
+      setQueryInspectorStatus('Reverted to auto-generated query.');
+    });
+
+    document.getElementById('copyQueryBtn')?.addEventListener('click', async () => {
+      const textarea = document.getElementById('queryInspectorText');
+      if (!textarea) return;
+      try {
+        await navigator.clipboard.writeText(textarea.value);
+        alert('GraphQL query copied to clipboard.');
+      } catch (_) {
+        alert('Unable to copy automatically. Select the query text and copy manually.');
+      }
+    });
+
+    document.addEventListener('pointermove', onNodePointerMove);
+    document.addEventListener('pointerup', onNodePointerUp);
+    window.addEventListener('resize', () => updateRelationshipLines());
+
+    // Step 5: Generate Report
+    document.getElementById('generateBtn')?.addEventListener('click', () => {
+      const title = document.getElementById('reportTitle').value || 'Multi-Entity Report';
+      const description = document.getElementById('reportDescription').value || '';
+      const displayMode = document.getElementById('displayMode').value;
+
+      generatedHTML = generateMultiEntityReport(title, description, displayMode);
+
+      document.getElementById('step6').style.display = 'block';
+      document.getElementById('step6').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    document.getElementById('previewBtn')?.addEventListener('click', () => {
+      const preview = document.getElementById('reportPreview');
+      preview.innerHTML = `
+        <div class="report-preview">
+          <h3 style="color: #00d9ff; margin-top: 0;">Report Structure Preview</h3>
+          <pre>${generateStructurePreview()}</pre>
+        </div>
+      `;
+    });
+
+    function generateStructurePreview() {
+      let preview = 'Report Structure:\n\n';
+
+      selectedEntityTypes.forEach((entityType, idx) => {
+        const indent = '  '.repeat(idx);
+        const fields = selectedFields[entityType] || [];
+
+        preview += `${indent}${entityType} (${fields.length} fields)\n`;
+        fields.forEach(field => {
+          preview += `${indent}  - ${field.name} (${field.location})\n`;
+        });
+
+        if (relationships[idx]) {
+          preview += `${indent}  └─ linked to ${relationships[idx].to} via ${relationships[idx].fromField} = ${relationships[idx].to}.${relationships[idx].toField}\n`;
+        }
+        preview += '\n';
+      });
+
+      return preview;
+    }
+
+    // Single Entity Report Generation (with templates)
+    function generateSingleEntityReport(title, description, displayMode) {
+      const entityType = selectedEntityTypes[0];
+      const fields = selectedFields[entityType] || [];
+
+      const displayFunction = generateSingleEntityDisplayFunction(displayMode, entityType, fields);
+      const helperFunctions = generateHelperFunctions();
+      const overrideQuery = getQueryOverrideForEntity(entityType);
+      const defaultQueryBody = `
+        query GetEntities(\\$first: Int!, \\$entityType: [String!]) {
+          entityQuery {
+            queryEntities(first: \\$first, entityType: \\$entityType) {
+              totalCount
+              entities {
+                ${fields.filter(f => f.location === 'basic').map(f => f.name).join('\\n                ')}${fields.some(f => f.location === 'tag') ? '\\n                tags { key value }' : ''}${fields.some(f => f.location === 'property') ? '\\n                properties { name value }' : ''}${fields.some(f => f.location.startsWith('namespace:')) ? '\\n                namespaces { name properties { name value } }' : ''}
+              }
+            }
+          }
+        }
+      `;
+      const queryDeclaration = overrideQuery
+        ? `const query = ${JSON.stringify(overrideQuery)};`
+        : `const query = \`${defaultQueryBody}\`;`;
+
+      // Escape special characters for safe embedding in HTML
+      const escapedTitle = title.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+      const escapedDesc = description ? description.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c])) : '';
+
+      return `<!DOCTYPE html>
+<html>
+<head>
+  <title>${escapedTitle}</title>
+  <style>
+    body { margin: 0; padding: 0; background: #000; font-family: 'Inter', sans-serif; color: #e0e0e0; }
+    .header { background: #0f171c; padding: 20px; border-bottom: 2px solid #00d9ff; }
+    .container { padding: 40px; max-width: 1400px; margin: 0 auto; }
+    #loading { background: #ffe9a2; color: #000; padding: 16px; text-align: center; }
+    table { width: 100%; border-collapse: collapse; background: rgba(255,255,255,0.05); border-radius: 8px; overflow: hidden; }
+    th { padding: 12px; text-align: left; background: rgba(0,217,255,0.1); color: #00d9ff; border-bottom: 2px solid rgba(255,255,255,0.1); }
+    td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    tr:hover { background: rgba(255,255,255,0.02); }
+    .summary-card { background: rgba(0,217,255,0.1); padding: 20px; border-radius: 8px; border-left: 4px solid #00d9ff; }
+    .group-header { color: #00d9ff; padding: 12px; background: rgba(0,217,255,0.1); border-radius: 6px; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${escapedTitle}</h1>
+    ${escapedDesc ? `<p style="color: #9ca3af; margin-top: 8px;">${escapedDesc}</p>` : ''}
+  </div>
+  <div id="loading">⏳ Loading data...</div>
+  <div class="container">
+    <div id="report-content"></div>
+  </div>
+
+  <script>
+    var serviceUrl = '';
+    var bearerToken = '';
+
+    ${helperFunctions}
+
+    async function fetchData() {
+      ${queryDeclaration}
+
+      const variables = {
+        first: 1000,
+        entityType: ["${entityType}"]
+      };
+
+      try {
+        const response = await fetch(serviceUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': bearerToken
+          },
+          body: JSON.stringify({ query, variables })
+        });
+
+        const result = await response.json();
+        if (result.errors) {
+          document.getElementById('loading').innerHTML = '❌ Error: ' + JSON.stringify(result.errors);
+          return;
+        }
+
+        const data = result.data.entityQuery.queryEntities;
+        document.getElementById('loading').style.display = 'none';
+        displayData(data);
+      } catch (error) {
+        document.getElementById('loading').innerHTML = '❌ Error: ' + error.message;
+      }
+    }
+
+    ${displayFunction}
+
+    function main() {
+      fetchData();
+    }
+
+    function receiveHubToken(event) {
+      const config = event?.data?.data;
+      if (event?.data?.type === 'apiConfig' && config?.token?.length && config?.endPoint?.length) {
+        bearerToken = config?.token;
+        serviceUrl = config?.endPoint;
+        main();
+      }
+    }
+
+    window.addEventListener('message', receiveHubToken, false);
+  <\/script>
+</body>
+</html>`;
+    }
+
+    function generateSingleEntityDisplayFunction(displayMode, entityType, fields) {
+      if (displayMode === 'summary-table') {
+        return generateSummaryTableDisplay(fields);
+      } else if (displayMode === 'grouped') {
+        return generateGroupedDisplay(fields);
+      } else {
+        return generateTableDisplay(fields);
+      }
+    }
+
+    function generateTableDisplay(fields) {
+      return `
+    function displayData(data) {
+      const entities = data.entities || [];
+      let html = '<table><thead><tr>';
+      ${fields.map(f => `html += '<th>${f.name}</th>';`).join('\\n      ')}
+      html += '</tr></thead><tbody>';
+
+      entities.forEach(entity => {
+        html += '<tr>';
+        ${fields.map(f => {
+          if (f.location === 'basic') return `html += '<td>' + (entity.${f.name} || '-') + '</td>';`;
+          if (f.location === 'tag') return `html += '<td>' + (getTagValue(entity.tags, '${f.name}') || '-') + '</td>';`;
+          if (f.location === 'property') return `html += '<td>' + (getPropertyValue(entity.properties, '${f.name}') || '-') + '</td>';`;
+          return `html += '<td>-</td>';`;
+        }).join('\\n        ')}
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('report-content').innerHTML = html;
+    }`;
+    }
+
+    function generateSummaryTableDisplay(fields) {
+      return `
+    function displayData(data) {
+      const entities = data.entities || [];
+      let html = '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px;">';
+      html += '<div class="summary-card"><h3 style="margin: 0;">Total Entities</h3><div style="font-size: 32px; font-weight: bold; margin-top: 8px;">' + entities.length + '</div></div>';
+      html += '</div>';
+
+      html += '<table><thead><tr>';
+      ${fields.map(f => `html += '<th>${f.name}</th>';`).join('\\n      ')}
+      html += '</tr></thead><tbody>';
+
+      entities.forEach(entity => {
+        html += '<tr>';
+        ${fields.map(f => {
+          if (f.location === 'basic') return `html += '<td>' + (entity.${f.name} || '-') + '</td>';`;
+          if (f.location === 'tag') return `html += '<td>' + (getTagValue(entity.tags, '${f.name}') || '-') + '</td>';`;
+          if (f.location === 'property') return `html += '<td>' + (getPropertyValue(entity.properties, '${f.name}') || '-') + '</td>';`;
+          return `html += '<td>-</td>';`;
+        }).join('\\n        ')}
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      document.getElementById('report-content').innerHTML = html;
+    }`;
+    }
+
+    function generateGroupedDisplay(fields) {
+      const groupField = fields[0];
+      let groupAccessor = '';
+      if (groupField.location === 'basic') groupAccessor = `entity.${groupField.name}`;
+      else if (groupField.location === 'tag') groupAccessor = `getTagValue(entity.tags, '${groupField.name}')`;
+      else if (groupField.location === 'property') groupAccessor = `getPropertyValue(entity.properties, '${groupField.name}')`;
+      else groupAccessor = `'Unknown'`;
+
+      return `
+    function displayData(data) {
+      const entities = data.entities || [];
+      const groups = {};
+
+      entities.forEach(entity => {
+        const groupValue = ${groupAccessor} || 'Unknown';
+        if (!groups[groupValue]) groups[groupValue] = [];
+        groups[groupValue].push(entity);
+      });
+
+      let html = '';
+      Object.keys(groups).sort().forEach(groupName => {
+        const groupEntities = groups[groupName];
+        html += '<div style="margin-bottom: 24px;">';
+        html += '<div class="group-header">' + groupName + ' (' + groupEntities.length + ')</div>';
+        html += '<ul style="list-style: none; padding: 0;">';
+        groupEntities.forEach(e => {
+          html += '<li style="padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">' + (e.entityName || e.entityId) + '</li>';
+        });
+        html += '</ul></div>';
+      });
+
+      document.getElementById('report-content').innerHTML = html;
+    }`;
+    }
+
+    function generateMultiEntityReport(title, description, displayMode) {
+      // Check if single-entity mode (use templates) or multi-entity mode (use hierarchical)
+      const isSingleEntity = selectedEntityTypes.length === 1;
+
+      if (isSingleEntity) {
+        return generateSingleEntityReport(title, description, displayMode);
+      }
+
+      // Multi-entity hierarchical report
+      const queries = generateGraphQLQueries();
+      const displayFunction = generateHierarchicalDisplay(displayMode);
+      const helperFunctions = generateHelperFunctions();
+
+      // Escape special characters for safe embedding in HTML
+      const escapedTitle = title.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+      const escapedDesc = description ? description.replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c])) : '';
+
+      return `<!DOCTYPE html>
+<html>
+<head>
+  <title>${escapedTitle}</title>
+  <style>
+    ${generateReportCSS(displayMode)}
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>${escapedTitle}</h1>
+    ${escapedDesc ? `<p>${escapedDesc}</p>` : ''}
+  </div>
+
+  <div id="loading">⏳ Loading data...</div>
+
+  <div class="container">
+    <div id="report-content"></div>
+  </div>
+
+  <script>
+    var serviceUrl = '';
+    var bearerToken = '';
+
+    ${helperFunctions}
+
+    ${queries}
+
+    ${displayFunction}
+
+    async function main() {
+      try {
+        await fetchAllData();
+        document.getElementById('loading').style.display = 'none';
+      } catch (error) {
+        document.getElementById('loading').innerHTML = '❌ Error: ' + error.message;
+        document.getElementById('loading').style.backgroundColor = '#cb253e';
+      }
+    }
+
+    function receiveHubToken(event) {
+      const config = event?.data?.data || event?.data?.config;
+      if (event?.data?.type === 'apiConfig' && config?.token?.length && config?.endPoint?.length) {
+        bearerToken = config?.token;
+        serviceUrl = config?.endPoint;
+        main();
+      }
+    }
+
+    window.addEventListener('message', receiveHubToken, false);
+  <\/script>
+</body>
+</html>`;
+    }
+
+    function generateGraphQLQueries() {
+      let code = 'const entityData = {};\n\n';
+
+      selectedEntityTypes.forEach(entityType => {
+        const entity = schema.entityTypes.find(et => et.name === entityType);
+        const fields = getFieldsNeededForEntity(entityType);
+
+        const hasBasic = fields.some(f => f.location === 'basic');
+        const hasTags = fields.some(f => f.location === 'tag');
+        const hasProperties = fields.some(f => f.location === 'property');
+        const namespaces = [...new Set(
+          fields.filter(f => f.location.startsWith('namespace:')).map(f => f.location.split(':')[1])
+        )];
+        const overrideQuery = getQueryOverrideForEntity(entityType);
+        const defaultQueryTemplate = `
+    query GetEntities(\\$first: Int!, \\$entityType: [String!]) {
+      entityQuery {
+        queryEntities(first: \\$first, entityType: \\$entityType) {
+          totalCount
+          entities {
+            ${hasBasic ? fields.filter(f => f.location === 'basic').map(f => f.name).join('\n            ') : 'entityId\n            entityName\n            entityType'}
+            ${hasTags ? 'tags { key value }' : ''}
+            ${hasProperties ? 'properties { name value }' : ''}
+            ${namespaces.length > 0 ? `namespaces {
+              name
+              properties { name value }
+            }` : ''}
+          }
+        }
+      }
+    }
+  `;
+        const querySnippet = overrideQuery
+          ? `const query = ${JSON.stringify(overrideQuery)};`
+          : `const query = \`${defaultQueryTemplate}\`;`;
+
+        code += `async function fetch${entityType.replace(/\./g, '_')}() {
+  ${querySnippet}
+
+  const variables = {
+    first: 1000,
+    entityType: ["${entityType}"]
+  };
+
+  const response = await fetch(serviceUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': bearerToken
+    },
+    body: JSON.stringify({ query, variables })
+  });
+
+  const result = await response.json();
+  if (result.errors) throw new Error(result.errors[0].message);
+
+  entityData["${entityType}"] = result.data.entityQuery.queryEntities.entities;
+  return entityData["${entityType}"];
+}
+
+`;
+      });
+
+      code += `async function fetchAllData() {
+  ${selectedEntityTypes.map(et => `await fetch${et.replace(/\./g, '_')}();`).join('\n  ')}
+  displayHierarchicalData();
+}`;
+
+      return code;
+    }
+
+    function generateHierarchicalDisplay(displayMode) {
+      const configPayload = JSON.stringify({
+        entityTypes: selectedEntityTypes,
+        relationships,
+        selectedFields
+      });
+
+      return `
+    const builderConfig = ${configPayload};
+    const layoutMode = '${displayMode}';
+    ${generateReportRendererClass()}
+
+    function displayHierarchicalData() {
+      const renderer = new ReportRenderer(builderConfig, entityData);
+      let html = '';
+      if (layoutMode === 'hierarchical') {
+        html = renderer.renderHierarchy();
+      } else if (layoutMode === 'table') {
+        html = renderer.renderTable();
+      } else if (layoutMode === 'timeline') {
+        html = renderer.renderTimeline();
+      } else {
+        html = renderer.renderCards();
+      }
+      document.getElementById('report-content').innerHTML = html;
+    }
+      `;
+    }
+
+    function generateFieldAccessor(entityVar, field) {
+      if (field.location === 'basic') {
+        return `${entityVar}.${field.name}`;
+      } else if (field.location === 'tag') {
+        return `getTagValue(${entityVar}.tags, '${field.name}')`;
+      } else if (field.location === 'property') {
+        return `getPropertyValue(${entityVar}.properties, '${field.name}')`;
+      } else if (field.location.startsWith('namespace:')) {
+        const ns = field.location.split(':')[1];
+        return `getNamespaceProperty(${entityVar}, '${ns}', '${field.name}')`;
+      }
+    }
+
+    function generateReportRendererClass() {
+      return `
+    class ReportRenderer {
+      constructor(config, entityData) {
+        this.config = config || {};
+        this.entityData = entityData || {};
+        this.relationships = this.config.relationships || [];
+        this.entityTypes = this.config.entityTypes || [];
+        this.selectedFields = this.config.selectedFields || {};
+      }
+
+      renderHierarchy() {
+        const nodes = this.buildNodes();
+        if (!nodes.length) {
+          return '<div class="entity-item">No matching data</div>';
+        }
+        return nodes.map(node => this.renderHierarchyNode(node, 0)).join('');
+      }
+
+      renderHierarchyNode(node, depth) {
+        const containerClass = depth === 0 ? 'hierarchy-root' : 'hierarchy-level';
+        let html = '<div class="' + containerClass + '">';
+        html += '<h4>' + node.entityType + '</h4>';
+        html += this.renderFields(node);
+        node.children.forEach(child => {
+          html += this.renderHierarchyNode(child, depth + 1);
+        });
+        html += '</div>';
+        return html;
+      }
+
+      renderCards() {
+        const nodes = this.buildNodes();
+        if (!nodes.length) return '<div class="entity-item">No matching data</div>';
+        return nodes.map(node => this.renderCard(node)).join('');
+      }
+
+      renderCard(node) {
+        let html = '<div class="preview-card">';
+        html += '<h4>' + node.entityType + '</h4>';
+        html += '<div>' + (this.getDisplayValue(node.entityType, node.entity) || '-') + '</div>';
+        if (node.children.length) {
+          html += '<div style="margin-top: 12px;">';
+          node.children.forEach(child => {
+            html += this.renderCard(child);
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+        return html;
+      }
+
+      renderTable() {
+        const rows = this.collectRows();
+        const colCount = this.entityTypes.length || 1;
+        let html = '<table><thead><tr>';
+        this.entityTypes.forEach(type => {
+          html += '<th>' + type + '</th>';
+        });
+        html += '</tr></thead><tbody>';
+        if (!rows.length) {
+          html += '<tr><td colspan="' + colCount + '">No matching data</td></tr>';
+        } else {
+          rows.forEach(row => {
+            html += '<tr>';
+            row.forEach((node, idx) => {
+              const value = node ? this.getDisplayValue(this.entityTypes[idx], node.entity) || '-' : '-';
+              html += '<td>' + value + '</td>';
+            });
+            html += '</tr>';
+          });
+        }
+        html += '</tbody></table>';
+        return html;
+      }
+
+      renderTimeline() {
+        const rows = this.collectRows();
+        if (!rows.length) return '<div class="entity-item">No timeline data</div>';
+        let html = '<div class="timeline">';
+        rows.forEach(row => {
+          const labels = row.map((node, idx) => {
+            return node ? (this.getDisplayValue(this.entityTypes[idx], node.entity) || this.entityTypes[idx]) : null;
+          }).filter(Boolean);
+          html += '<div class="timeline-step">';
+          html += '<div style="font-weight: 600;">' + labels.join(' → ') + '</div>';
+          html += '</div>';
+        });
+        html += '</div>';
+        return html;
+      }
+
+      renderFields(node) {
+        const fields = this.getFields(node.entityType);
+        if (!fields.length) return '';
+        let html = '<div class="entity-item">';
+        fields.forEach(field => {
+          const value = this.getFieldValue(node.entity, field) || '-';
+          if (field.showLabel === false) {
+            html += '<div>' + value + '</div>';
+          } else {
+            html += '<div><strong>' + field.name + ':</strong> ' + value + '</div>';
+          }
+        });
+        html += '</div>';
+        return html;
+      }
+
+      getFields(entityType) {
+        return this.selectedFields?.[entityType] || [];
+      }
+
+      getFieldValue(entity, field) {
+        if (!entity || !field) return '';
+        if (field.location === 'basic') {
+          return entity[field.name];
+        }
+        if (field.location === 'tag') {
+          return getTagValue(entity.tags, field.name);
+        }
+        if (field.location === 'property') {
+          return getPropertyValue(entity.properties, field.name);
+        }
+        if (field.location?.startsWith('namespace:')) {
+          const ns = field.location.split(':')[1];
+          return getNamespaceProperty(entity, ns, field.name);
+        }
+        return '';
+      }
+
+      getDisplayValue(entityType, entity) {
+        const fields = this.getFields(entityType);
+        const preferred = fields.find(f => f.zone === 'header') || fields[0];
+        if (preferred) {
+          return this.getFieldValue(entity, preferred);
+        }
+        return entity?.entityName || entity?.entityId || '';
+      }
+
+      buildNodes() {
+        if (!this.entityTypes.length) return [];
+        const roots = this.entityData[this.entityTypes[0]] || [];
+        return roots.map(root => this.buildNode(0, root));
+      }
+
+      buildNode(depth, entity) {
+        const entityType = this.entityTypes[depth];
+        const node = { entityType, entity, children: [] };
+        if (depth < this.relationships.length) {
+          const rel = this.relationships[depth];
+          const children = (this.entityData[rel.to] || []).filter(child => {
+            const parentValue = this.getRelationshipValue(entity, rel.fromField, rel.fromLocation);
+            const childValue = this.getRelationshipValue(child, rel.toField, rel.toLocation);
+            return this.valuesMatch(parentValue, childValue);
+          });
+          node.children = children.map(child => this.buildNode(depth + 1, child));
+        }
+        return node;
+      }
+
+      collectRows() {
+        const nodes = this.buildNodes();
+        const rows = [];
+        const depthCount = this.entityTypes.length || 1;
+
+        const traverse = (depth, node, currentRow) => {
+          const nextRow = currentRow.slice();
+          nextRow[depth] = node;
+          if (!node.children.length || depth === depthCount - 1) {
+            rows.push(nextRow);
+            return;
+          }
+          node.children.forEach(child => traverse(depth + 1, child, nextRow));
+        };
+
+        nodes.forEach(node => {
+          const seed = new Array(depthCount).fill(null);
+          traverse(0, node, seed);
+        });
+
+        if (!nodes.length && this.entityTypes.length) {
+          const fallback = (this.entityData[this.entityTypes[0]] || []).map(entity => {
+            const row = new Array(depthCount).fill(null);
+            row[0] = { entity };
+            return row;
+          });
+          fallback.forEach(row => rows.push(row));
+        }
+
+        return rows;
+      }
+
+      getRelationshipValue(entity, fieldName, location) {
+        if (!entity || !fieldName) return undefined;
+        const loc = location || 'auto';
+        if (loc === 'basic') {
+          return entity[fieldName];
+        }
+        if (loc === 'tag') {
+          return getTagValue(entity.tags, fieldName);
+        }
+        if (loc === 'property') {
+          return getPropertyValue(entity.properties, fieldName);
+        }
+        if (loc?.startsWith && loc.startsWith('namespace:')) {
+          const ns = loc.split(':')[1];
+          return getNamespaceProperty(entity, ns, fieldName);
+        }
+
+        if (entity[fieldName] !== undefined && entity[fieldName] !== null) {
+          return entity[fieldName];
+        }
+
+        const propertyValue = getPropertyValue(entity.properties, fieldName);
+        if (propertyValue !== undefined && propertyValue !== null) {
+          return propertyValue;
+        }
+
+        const tagValue = getTagValue(entity.tags, fieldName);
+        if (tagValue !== undefined && tagValue !== null) {
+          return tagValue;
+        }
+
+        if (entity.namespaces) {
+          for (const ns of entity.namespaces) {
+            const prop = ns.properties?.find(p => p.name === fieldName);
+            if (prop) return prop.value;
+          }
+        }
+
+        return undefined;
+      }
+
+      valuesMatch(parentValue, childValue) {
+        if (parentValue === undefined || parentValue === null) return false;
+        if (childValue === undefined || childValue === null) return false;
+        return parentValue === childValue;
+      }
+    }
+      `;
+    }
+
+    function generateHelperFunctions() {
+      return `
+    function getTagValue(tags, key) {
+      if (!tags) return null;
+      const tag = tags.find(t => t.key === key);
+      return tag?.value;
+    }
+
+    function getPropertyValue(properties, name) {
+      if (!properties) return null;
+      const prop = properties.find(p => p.name === name);
+      return prop?.value;
+    }
+
+    function getNamespaceProperty(entity, nsName, propName) {
+      if (!entity.namespaces) return null;
+      const ns = entity.namespaces.find(n => n.name === nsName);
+      if (!ns?.properties) return null;
+      const prop = ns.properties.find(p => p.name === propName);
+      return prop?.value;
+    }
+      `;
+    }
+
+    function generateReportCSS(displayMode) {
+      return `
+    body {
+      margin: 0;
+      padding: 0;
+      background: #000;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #e0e0e0;
+    }
+
+    .header {
+      background: #0f171c;
+      color: white;
+      padding: 20px 40px;
+      border-bottom: 2px solid #00d9ff;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 600;
+    }
+
+    .header p {
+      margin: 8px 0 0 0;
+      color: #9ca3af;
+    }
+
+    #loading {
+      background: #ffe9a2;
+      color: #000;
+      padding: 16px;
+      text-align: center;
+      font-weight: 500;
+    }
+
+    .container {
+      padding: 40px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .hierarchy-root {
+      background: rgba(0, 217, 255, 0.1);
+      border: 1px solid #00d9ff;
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .hierarchy-level {
+      margin-left: 24px;
+      margin-top: 16px;
+      padding-left: 20px;
+      border-left: 3px solid rgba(176, 132, 255, 0.5);
+    }
+
+    .hierarchy-level h4 {
+      color: #b084ff;
+      margin: 0 0 12px 0;
+      font-size: 16px;
+    }
+
+    .entity-item {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .entity-item strong {
+      color: #00d9ff;
+      margin-right: 8px;
+    }
+
+    .entity-section {
+      margin-bottom: 40px;
+    }
+
+    .entity-section h2 {
+      color: #00d9ff;
+      border-bottom: 2px solid rgba(0, 217, 255, 0.3);
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+    }
+
+    .timeline {
+      border-left: 2px dashed rgba(0, 217, 255, 0.4);
+      padding-left: 20px;
+      margin-left: 10px;
+    }
+
+    .timeline-step {
+      position: relative;
+      margin-bottom: 18px;
+    }
+
+    .timeline-step::before {
+      content: '';
+      position: absolute;
+      left: -29px;
+      top: 6px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00d9ff;
+      box-shadow: 0 0 8px rgba(0, 217, 255, 0.7);
+    }
+
+    .preview-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .preview-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #00d9ff;
+    }
+
+    .preview-card {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .preview-card h4 {
+      margin: 0 0 8px 0;
+      font-size: 14px;
+      color: #00d9ff;
+    }
+
+    .preview-card small {
+      color: #9ca3af;
+    }
+      `;
+    }
+
+    // Step 6: Download
+    document.getElementById('downloadBtn')?.addEventListener('click', () => {
+      const blob = new Blob([generatedHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const title = document.getElementById('reportTitle').value.replace(/\s+/g, '_').toLowerCase();
+      a.download = `${title || 'multi_entity_report'}.html`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
+  </script>
+</body>
+</html>
