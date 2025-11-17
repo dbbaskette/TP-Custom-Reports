@@ -373,8 +373,10 @@
         const data = await fetchGraphQL(query, {});
         const operations = data.__schema.queryType.fields;
 
-        discoveredSchema.queryOperations = operations.map(op => {
+        // Map operations with basic info
+        const operationsWithBasicInfo = operations.map(op => {
           const returnType = getTypeInfo(op.type);
+          const returnTypeName = getBaseTypeName(op.type);
 
           return {
             name: op.name,
@@ -385,9 +387,38 @@
               type: getTypeInfo(arg.type),
               required: arg.type.kind === 'NON_NULL'
             })),
-            returnType: returnType
+            returnType: returnType,
+            returnTypeName: returnTypeName,
+            returnFields: [] // Will be populated in next step
           };
         });
+
+        // Now fetch fields for each unique return type
+        console.log('📋 Fetching return type details...');
+        const uniqueReturnTypes = [...new Set(operationsWithBasicInfo.map(op => op.returnTypeName))];
+        const typeFieldsMap = {};
+
+        for (const typeName of uniqueReturnTypes) {
+          if (!typeName || typeName === 'Unknown') continue;
+
+          try {
+            const fields = await fetchTypeFields(typeName);
+            typeFieldsMap[typeName] = fields;
+            console.log(`✅ Fetched fields for ${typeName}: ${fields.length} fields`);
+          } catch (error) {
+            console.warn(`⚠️ Could not fetch fields for ${typeName}:`, error.message);
+            typeFieldsMap[typeName] = [];
+          }
+
+          // Small delay to avoid rate limiting
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+
+        // Populate return fields
+        discoveredSchema.queryOperations = operationsWithBasicInfo.map(op => ({
+          ...op,
+          returnFields: typeFieldsMap[op.returnTypeName] || []
+        }));
 
         displayQueryOperations(discoveredSchema.queryOperations);
         return true;
@@ -398,6 +429,53 @@
           <small>This may be due to GraphQL introspection depth limits. Basic operation info will still be available.</small></div>
         `;
         return false;
+      }
+    }
+
+    function getBaseTypeName(type) {
+      // Navigate through NON_NULL and LIST wrappers to get the base type name
+      let actualType = type;
+      while (actualType && (actualType.kind === 'NON_NULL' || actualType.kind === 'LIST')) {
+        actualType = actualType.ofType;
+      }
+      return actualType?.name || 'Unknown';
+    }
+
+    async function fetchTypeFields(typeName) {
+      const query = `
+        query {
+          __type(name: "${typeName}") {
+            name
+            fields {
+              name
+              description
+              type {
+                name
+                kind
+                ofType {
+                  name
+                  kind
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      try {
+        const data = await fetchGraphQL(query, {});
+        if (!data.__type || !data.__type.fields) {
+          return [];
+        }
+
+        return data.__type.fields.map(field => ({
+          name: field.name,
+          description: field.description,
+          type: getTypeInfo(field.type)
+        }));
+      } catch (error) {
+        console.error(`Error fetching fields for ${typeName}:`, error);
+        return [];
       }
     }
 
@@ -449,18 +527,30 @@
                   </div>
                 ` : '<p style="color: #6b7280; font-size: 12px;">No arguments</p>'}
 
+                ${op.returnFields && op.returnFields.length > 0 ? `
+                  <div style="margin-bottom: 12px;">
+                    <h5 style="color: #4ade80; font-size: 13px; margin: 0 0 8px 0;">Available Return Fields (${op.returnFields.length}):</h5>
+                    <div style="background: rgba(74, 222, 128, 0.05); padding: 8px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                      ${op.returnFields.map(field => `
+                        <div style="margin-bottom: 4px;">
+                          <span class="field-tag property">${field.name}</span>
+                          <span style="color: #9ca3af; font-size: 11px;">: ${field.type}</span>
+                          ${field.description ? `<br><span style="color: #6b7280; font-size: 11px; margin-left: 4px;">${field.description}</span>` : ''}
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                ` : ''}
+
                 <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                  <h5 style="color: #a855f7; font-size: 12px; margin: 0 0 6px 0;">Example Query Skeleton:</h5>
+                  <h5 style="color: #a855f7; font-size: 12px; margin: 0 0 6px 0;">Example Query:</h5>
                   <pre style="background: rgba(0, 0, 0, 0.5); padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 11px; color: #e0e0e0; margin: 0;">query {
   ${op.name}${op.arguments.length > 0 ? `(
     ${op.arguments.slice(0, 3).map(arg => `${arg.name}: ${arg.type.includes('String') ? '"value"' : arg.type.includes('Int') ? '100' : arg.type.includes('Boolean') ? 'true' : 'null'}`).join('\n    ')}${op.arguments.length > 3 ? '\n    # ... more arguments' : ''}
   )` : ''} {
-    # Add fields here based on ${op.returnType}
+    ${op.returnFields && op.returnFields.length > 0 ? op.returnFields.slice(0, 5).map(f => f.name).join('\n    ') : '# No fields discovered'}${op.returnFields && op.returnFields.length > 5 ? '\n    # ... ' + (op.returnFields.length - 5) + ' more fields' : ''}
   }
 }</pre>
-                  <p style="color: #6b7280; font-size: 11px; margin: 8px 0 0 0;">
-                    💡 Use TP GraphQL explorer to discover available return fields for ${op.returnType}
-                  </p>
                 </div>
               </div>
             </details>
