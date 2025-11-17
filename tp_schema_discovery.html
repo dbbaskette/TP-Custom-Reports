@@ -397,6 +397,7 @@
         console.log('📋 Fetching return type details...');
         const uniqueReturnTypes = [...new Set(operationsWithBasicInfo.map(op => op.returnTypeName))];
         const typeFieldsMap = {};
+        const inputTypeDetailsMap = {};
 
         for (const typeName of uniqueReturnTypes) {
           if (!typeName || typeName === 'Unknown') continue;
@@ -405,6 +406,25 @@
             const fields = await fetchTypeFields(typeName);
             typeFieldsMap[typeName] = fields;
             console.log(`✅ Fetched fields for ${typeName}: ${fields.length} fields`);
+
+            // Also fetch details for any Input types referenced in arguments
+            for (const field of fields) {
+              for (const arg of field.arguments || []) {
+                const inputTypeName = arg.type.replace(/[\[\]!]/g, ''); // Strip array/required markers
+                if (inputTypeName.includes('Input') && !inputTypeDetailsMap[inputTypeName]) {
+                  try {
+                    const inputFields = await fetchInputTypeFields(inputTypeName);
+                    if (inputFields.length > 0) {
+                      inputTypeDetailsMap[inputTypeName] = inputFields;
+                      console.log(`  ↳ Fetched input type ${inputTypeName}: ${inputFields.length} fields`);
+                    }
+                  } catch (e) {
+                    console.warn(`  ⚠️ Could not fetch input type ${inputTypeName}`);
+                  }
+                  await new Promise(resolve => setTimeout(resolve, 30));
+                }
+              }
+            }
           } catch (error) {
             console.warn(`⚠️ Could not fetch fields for ${typeName}:`, error.message);
             typeFieldsMap[typeName] = [];
@@ -413,6 +433,9 @@
           // Small delay to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 50));
         }
+
+        // Store input type details in schema
+        discoveredSchema.inputTypes = inputTypeDetailsMap;
 
         // Populate return fields
         discoveredSchema.queryOperations = operationsWithBasicInfo.map(op => ({
@@ -497,6 +520,45 @@
       }
     }
 
+    async function fetchInputTypeFields(typeName) {
+      const query = `
+        query {
+          __type(name: "${typeName}") {
+            name
+            inputFields {
+              name
+              description
+              type {
+                name
+                kind
+                ofType {
+                  name
+                  kind
+                }
+              }
+            }
+          }
+        }
+      `;
+
+      try {
+        const data = await fetchGraphQL(query, {});
+        if (!data.__type || !data.__type.inputFields) {
+          return [];
+        }
+
+        return data.__type.inputFields.map(field => ({
+          name: field.name,
+          description: field.description,
+          type: getTypeInfo(field.type),
+          required: field.type.kind === 'NON_NULL'
+        }));
+      } catch (error) {
+        console.error(`Error fetching input type ${typeName}:`, error);
+        return [];
+      }
+    }
+
     function getTypeInfo(type) {
       if (!type) return 'Unknown';
 
@@ -561,14 +623,31 @@
                             <details style="margin-top: 4px;">
                               <summary style="cursor: pointer; color: #fbbf24; font-size: 11px;">Show arguments (${field.arguments.length})</summary>
                               <div style="margin-top: 4px; padding-left: 8px; border-left: 2px solid rgba(251, 191, 36, 0.3);">
-                                ${field.arguments.map(arg => `
+                                ${field.arguments.map(arg => {
+                                  const inputTypeName = arg.type.replace(/[\[\]!]/g, '');
+                                  const hasInputDetails = discoveredSchema.inputTypes && discoveredSchema.inputTypes[inputTypeName];
+                                  return `
                                   <div style="margin: 4px 0; font-size: 11px;">
                                     <span style="color: #fbbf24;">${arg.name}</span>
                                     <span style="color: #9ca3af;">: ${arg.type}</span>
                                     ${arg.required ? '<span style="color: #ef4444; font-size: 9px;"> REQUIRED</span>' : ''}
+                                    ${hasInputDetails ? '<span style="color: #a855f7; font-size: 9px; cursor: pointer;" onclick="event.stopPropagation(); this.nextElementSibling.style.display = this.nextElementSibling.style.display === \'none\' ? \'block\' : \'none\'"> 🔍 fields</span>' : ''}
                                     ${arg.description ? `<br><span style="color: #6b7280; font-size: 10px;">${arg.description}</span>` : ''}
+                                    ${hasInputDetails ? `
+                                      <div style="display: none; margin-top: 4px; padding: 4px; background: rgba(168, 85, 247, 0.1); border-radius: 3px;">
+                                        ${discoveredSchema.inputTypes[inputTypeName].map(f => `
+                                          <div style="font-size: 10px; margin: 2px 0;">
+                                            <span style="color: #a855f7;">${f.name}</span>
+                                            <span style="color: #9ca3af;">: ${f.type}</span>
+                                            ${f.required ? '<span style="color: #ef4444; font-size: 8px;"> REQ</span>' : ''}
+                                            ${f.description ? `<br><span style="color: #6b7280; font-size: 9px;">${f.description}</span>` : ''}
+                                          </div>
+                                        `).join('')}
+                                      </div>
+                                    ` : ''}
                                   </div>
-                                `).join('')}
+                                  `;
+                                }).join('')}
                               </div>
                             </details>
                           ` : ''}
