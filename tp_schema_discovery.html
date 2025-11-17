@@ -293,12 +293,14 @@
     };
 
     // Common TP entity types to check
+    // All types are included in schema even if no data exists
     const COMMON_ENTITY_TYPES = [
       { name: "Tanzu.Portfolio.Repository", description: "Portfolio repositories (apps, code repos)" },
       { name: "Tanzu.Portfolio.Application", description: "Portfolio applications" },
       { name: "Tanzu.Portfolio.BusinessApp", description: "Portfolio business applications" },
       { name: "Tanzu.Portfolio.Space", description: "Portfolio spaces" },
       { name: "Tanzu.TAP.Workload", description: "TAP workloads" },
+      { name: "Tanzu.TAP.Deliverable", description: "TAP deliverables" },
       { name: "Tanzu.TAS.Application", description: "TAS applications" },
       { name: "Tanzu.TAS.Space", description: "TAS spaces" },
       { name: "Tanzu.TAS.Organization", description: "TAS organizations" },
@@ -485,7 +487,21 @@
 
           console.log(`✅ Found ${name}: ${sampleData.totalCount} entities`);
         } else {
-          console.log(`⚠️ Skipped ${name}: No entities found`);
+          // Include entity type even if no data, with minimal field structure
+          discoveredSchema.entityTypes.push({
+            name: name,
+            description: description,
+            totalCount: 0,
+            sampleData: null,
+            fields: {
+              basic: ['entityId', 'entityName', 'entityType'],
+              tags: [],
+              properties: [],
+              namespaces: {}
+            }
+          });
+
+          console.log(`⚠️ Included ${name}: No entities found (available for selection but no data)`);
         }
 
         completed++;
@@ -562,9 +578,14 @@
         return;
       }
 
-      const html = entityTypes.map(et => `
-        <div class="entity-card">
-          <h3>${et.name}</h3>
+      const html = entityTypes.map(et => {
+        const hasData = et.totalCount > 0;
+        const borderColor = hasData ? '#00d9ff' : '#6b7280';
+        const noDataBadge = hasData ? '' : '<span style="background: rgba(107, 114, 128, 0.3); color: #9ca3af; padding: 4px 12px; border-radius: 12px; font-size: 11px; margin-left: 12px;">NO DATA</span>';
+
+        return `
+        <div class="entity-card" style="border-left-color: ${borderColor}; ${hasData ? '' : 'opacity: 0.7;'}">
+          <h3>${et.name}${noDataBadge}</h3>
           <p style="color: #9ca3af; margin: 8px 0;">${et.description}</p>
 
           <div class="entity-stats">
@@ -572,10 +593,12 @@
               <div class="stat-label">Total Entities</div>
               <div class="stat-value">${et.totalCount.toLocaleString()}</div>
             </div>
+            ${hasData ? `
             <div class="stat">
               <div class="stat-label">Sample Size</div>
               <div class="stat-value">${et.sampleData.sampleEntities.length}</div>
             </div>
+            ` : ''}
             <div class="stat">
               <div class="stat-label">Basic Fields</div>
               <div class="stat-value">${et.fields.basic.length}</div>
@@ -629,7 +652,8 @@
             ` : ''}
           </div>
         </div>
-      `).join('');
+      `;
+      }).join('');
 
       container.innerHTML = html;
       document.getElementById('results').style.display = 'block';
