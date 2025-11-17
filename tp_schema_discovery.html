@@ -351,6 +351,50 @@
                     ofType {
                       name
                       kind
+                      ofType {
+                        name
+                        kind
+                      }
+                    }
+                  }
+                }
+                type {
+                  name
+                  kind
+                  ofType {
+                    name
+                    kind
+                    fields {
+                      name
+                      description
+                      type {
+                        name
+                        kind
+                        ofType {
+                          name
+                          kind
+                        }
+                      }
+                    }
+                  }
+                  fields {
+                    name
+                    description
+                    type {
+                      name
+                      kind
+                      ofType {
+                        name
+                        kind
+                        fields {
+                          name
+                          description
+                        }
+                      }
+                      fields {
+                        name
+                        description
+                      }
                     }
                   }
                 }
@@ -364,17 +408,25 @@
         const data = await fetchGraphQL(query, {});
         const operations = data.__schema.queryType.fields;
 
-        discoveredSchema.queryOperations = operations.map(op => ({
-          name: op.name,
-          description: op.description,
-          arguments: op.args.map(arg => ({
-            name: arg.name,
-            description: arg.description,
-            type: arg.type.name || arg.type.ofType?.name
-          }))
-        }));
+        discoveredSchema.queryOperations = operations.map(op => {
+          const returnType = getTypeInfo(op.type);
+          const returnFields = getReturnFields(op.type);
 
-        displayQueryOperations(operations);
+          return {
+            name: op.name,
+            description: op.description,
+            arguments: op.args.map(arg => ({
+              name: arg.name,
+              description: arg.description,
+              type: getTypeInfo(arg.type),
+              required: arg.type.kind === 'NON_NULL'
+            })),
+            returnType: returnType,
+            returnFields: returnFields
+          };
+        });
+
+        displayQueryOperations(discoveredSchema.queryOperations);
         return true;
       } catch (error) {
         console.error('Error discovering query operations:', error);
@@ -385,17 +437,111 @@
       }
     }
 
+    function getTypeInfo(type) {
+      if (!type) return 'Unknown';
+
+      if (type.kind === 'NON_NULL') {
+        return getTypeInfo(type.ofType) + '!';
+      } else if (type.kind === 'LIST') {
+        return '[' + getTypeInfo(type.ofType) + ']';
+      } else {
+        return type.name || 'Unknown';
+      }
+    }
+
+    function getReturnFields(type) {
+      // Navigate through NON_NULL and LIST wrappers
+      let actualType = type;
+      while (actualType && (actualType.kind === 'NON_NULL' || actualType.kind === 'LIST')) {
+        actualType = actualType.ofType;
+      }
+
+      if (!actualType || !actualType.fields) return [];
+
+      return actualType.fields.map(field => {
+        const fieldType = getTypeInfo(field.type);
+        const nestedFields = getReturnFields(field.type);
+
+        return {
+          name: field.name,
+          description: field.description,
+          type: fieldType,
+          fields: nestedFields
+        };
+      });
+    }
+
     function displayQueryOperations(operations) {
       const container = document.getElementById('operationsList');
+
+      function renderFields(fields, indent = 0) {
+        if (!fields || fields.length === 0) return '';
+
+        const indentStyle = `margin-left: ${indent * 20}px;`;
+        return fields.map(field => `
+          <div style="${indentStyle}">
+            <span class="field-tag property">${field.name}</span>
+            <span style="color: #9ca3af; font-size: 11px;">: ${field.type}</span>
+            ${field.description ? `<br><span style="color: #6b7280; font-size: 11px; ${indentStyle}">${field.description}</span>` : ''}
+            ${field.fields && field.fields.length > 0 ? renderFields(field.fields, indent + 1) : ''}
+          </div>
+        `).join('');
+      }
 
       const html = `
         <div class="query-operations">
           <h4>Available Query Operations (${operations.length})</h4>
-          ${operations.map(op => `
-            <div class="operation">
-              <strong>${op.name}</strong>
-              ${op.description ? `<br><span style="color: #9ca3af;">${op.description}</span>` : ''}
-            </div>
+          <p style="color: #9ca3af; font-size: 13px; margin-top: 8px;">
+            Click on an operation to see full details. All operations are included in the downloaded schema JSON.
+          </p>
+          ${operations.map((op, idx) => `
+            <details class="operation" style="cursor: pointer; margin-bottom: 12px;">
+              <summary style="font-weight: bold; padding: 8px; background: rgba(255, 255, 255, 0.05); border-radius: 6px;">
+                <strong style="color: #00d9ff;">${op.name}</strong>
+                <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">→ ${op.returnType}</span>
+              </summary>
+              <div style="padding: 12px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; margin-top: 4px;">
+                ${op.description ? `
+                  <div style="color: #b084ff; margin-bottom: 12px; font-size: 13px;">
+                    📝 ${op.description}
+                  </div>
+                ` : ''}
+
+                ${op.arguments && op.arguments.length > 0 ? `
+                  <div style="margin-bottom: 12px;">
+                    <h5 style="color: #fbbf24; font-size: 13px; margin: 0 0 8px 0;">Arguments:</h5>
+                    ${op.arguments.map(arg => `
+                      <div style="margin-bottom: 6px; padding: 6px; background: rgba(251, 191, 36, 0.1); border-radius: 4px;">
+                        <span class="field-tag tag">${arg.name}</span>
+                        <span style="color: #9ca3af; font-size: 11px;">: ${arg.type}</span>
+                        ${arg.required ? '<span style="color: #ef4444; font-size: 10px; margin-left: 4px;">REQUIRED</span>' : ''}
+                        ${arg.description ? `<br><span style="color: #9ca3af; font-size: 11px; margin-left: 4px;">${arg.description}</span>` : ''}
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : '<p style="color: #6b7280; font-size: 12px;">No arguments</p>'}
+
+                ${op.returnFields && op.returnFields.length > 0 ? `
+                  <div>
+                    <h5 style="color: #4ade80; font-size: 13px; margin: 0 0 8px 0;">Return Fields:</h5>
+                    <div style="background: rgba(74, 222, 128, 0.05); padding: 8px; border-radius: 4px;">
+                      ${renderFields(op.returnFields)}
+                    </div>
+                  </div>
+                ` : ''}
+
+                <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
+                  <h5 style="color: #a855f7; font-size: 12px; margin: 0 0 6px 0;">Example Query:</h5>
+                  <pre style="background: rgba(0, 0, 0, 0.5); padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 11px; color: #e0e0e0; margin: 0;">query {
+  ${op.name}${op.arguments.length > 0 ? `(
+    ${op.arguments.slice(0, 2).map(arg => `${arg.name}: ${arg.type.includes('String') ? '"value"' : arg.type.includes('Int') ? '10' : 'value'}`).join('\n    ')}
+  )` : ''} {
+    ${op.returnFields.slice(0, 3).map(f => f.name).join('\n    ')}
+  }
+}</pre>
+                </div>
+              </div>
+            </details>
           `).join('')}
         </div>
       `;
