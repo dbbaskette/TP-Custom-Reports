@@ -335,6 +335,7 @@
     async function discoverQueryOperations() {
       console.log('Discovering query operations...');
 
+      // Simplified introspection query to avoid depth issues
       const query = `
         query {
           __schema {
@@ -351,10 +352,6 @@
                     ofType {
                       name
                       kind
-                      ofType {
-                        name
-                        kind
-                      }
                     }
                   }
                 }
@@ -364,38 +361,6 @@
                   ofType {
                     name
                     kind
-                    fields {
-                      name
-                      description
-                      type {
-                        name
-                        kind
-                        ofType {
-                          name
-                          kind
-                        }
-                      }
-                    }
-                  }
-                  fields {
-                    name
-                    description
-                    type {
-                      name
-                      kind
-                      ofType {
-                        name
-                        kind
-                        fields {
-                          name
-                          description
-                        }
-                      }
-                      fields {
-                        name
-                        description
-                      }
-                    }
                   }
                 }
               }
@@ -410,7 +375,6 @@
 
         discoveredSchema.queryOperations = operations.map(op => {
           const returnType = getTypeInfo(op.type);
-          const returnFields = getReturnFields(op.type);
 
           return {
             name: op.name,
@@ -421,8 +385,7 @@
               type: getTypeInfo(arg.type),
               required: arg.type.kind === 'NON_NULL'
             })),
-            returnType: returnType,
-            returnFields: returnFields
+            returnType: returnType
           };
         });
 
@@ -431,7 +394,8 @@
       } catch (error) {
         console.error('Error discovering query operations:', error);
         document.getElementById('operationsList').innerHTML = `
-          <div class="error">❌ Error: ${error.message}</div>
+          <div class="error">❌ Error: ${error.message}<br><br>
+          <small>This may be due to GraphQL introspection depth limits. Basic operation info will still be available.</small></div>
         `;
         return false;
       }
@@ -449,50 +413,14 @@
       }
     }
 
-    function getReturnFields(type) {
-      // Navigate through NON_NULL and LIST wrappers
-      let actualType = type;
-      while (actualType && (actualType.kind === 'NON_NULL' || actualType.kind === 'LIST')) {
-        actualType = actualType.ofType;
-      }
-
-      if (!actualType || !actualType.fields) return [];
-
-      return actualType.fields.map(field => {
-        const fieldType = getTypeInfo(field.type);
-        const nestedFields = getReturnFields(field.type);
-
-        return {
-          name: field.name,
-          description: field.description,
-          type: fieldType,
-          fields: nestedFields
-        };
-      });
-    }
-
     function displayQueryOperations(operations) {
       const container = document.getElementById('operationsList');
-
-      function renderFields(fields, indent = 0) {
-        if (!fields || fields.length === 0) return '';
-
-        const indentStyle = `margin-left: ${indent * 20}px;`;
-        return fields.map(field => `
-          <div style="${indentStyle}">
-            <span class="field-tag property">${field.name}</span>
-            <span style="color: #9ca3af; font-size: 11px;">: ${field.type}</span>
-            ${field.description ? `<br><span style="color: #6b7280; font-size: 11px; ${indentStyle}">${field.description}</span>` : ''}
-            ${field.fields && field.fields.length > 0 ? renderFields(field.fields, indent + 1) : ''}
-          </div>
-        `).join('');
-      }
 
       const html = `
         <div class="query-operations">
           <h4>Available Query Operations (${operations.length})</h4>
           <p style="color: #9ca3af; font-size: 13px; margin-top: 8px;">
-            Click on an operation to see full details. All operations are included in the downloaded schema JSON.
+            Click on an operation to see details. All operations are included in the downloaded schema JSON.
           </p>
           ${operations.map((op, idx) => `
             <details class="operation" style="cursor: pointer; margin-bottom: 12px;">
@@ -521,24 +449,18 @@
                   </div>
                 ` : '<p style="color: #6b7280; font-size: 12px;">No arguments</p>'}
 
-                ${op.returnFields && op.returnFields.length > 0 ? `
-                  <div>
-                    <h5 style="color: #4ade80; font-size: 13px; margin: 0 0 8px 0;">Return Fields:</h5>
-                    <div style="background: rgba(74, 222, 128, 0.05); padding: 8px; border-radius: 4px;">
-                      ${renderFields(op.returnFields)}
-                    </div>
-                  </div>
-                ` : ''}
-
                 <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1);">
-                  <h5 style="color: #a855f7; font-size: 12px; margin: 0 0 6px 0;">Example Query:</h5>
+                  <h5 style="color: #a855f7; font-size: 12px; margin: 0 0 6px 0;">Example Query Skeleton:</h5>
                   <pre style="background: rgba(0, 0, 0, 0.5); padding: 12px; border-radius: 4px; overflow-x: auto; font-size: 11px; color: #e0e0e0; margin: 0;">query {
   ${op.name}${op.arguments.length > 0 ? `(
-    ${op.arguments.slice(0, 2).map(arg => `${arg.name}: ${arg.type.includes('String') ? '"value"' : arg.type.includes('Int') ? '10' : 'value'}`).join('\n    ')}
+    ${op.arguments.slice(0, 3).map(arg => `${arg.name}: ${arg.type.includes('String') ? '"value"' : arg.type.includes('Int') ? '100' : arg.type.includes('Boolean') ? 'true' : 'null'}`).join('\n    ')}${op.arguments.length > 3 ? '\n    # ... more arguments' : ''}
   )` : ''} {
-    ${op.returnFields.slice(0, 3).map(f => f.name).join('\n    ')}
+    # Add fields here based on ${op.returnType}
   }
 }</pre>
+                  <p style="color: #6b7280; font-size: 11px; margin: 8px 0 0 0;">
+                    💡 Use TP GraphQL explorer to discover available return fields for ${op.returnType}
+                  </p>
                 </div>
               </div>
             </details>
